@@ -217,6 +217,7 @@ class Neck.Controller extends Backbone.View
         if controller.scope.hasOwnProperty key
           controller._watch key, callback, context
           break
+      undefined
 
   watch: (keys..., callback)->
     call = => callback.apply @, _.map keys, (k)=> @scope[k]
@@ -227,6 +228,7 @@ class Neck.Controller extends Backbone.View
     if @scope._resolves[key]
       for resolve in @scope._resolves[key]
         resolve.controller.trigger "refresh:#{resolve.key}"
+      undefined
     else
       @trigger "refresh:#{key}"
 
