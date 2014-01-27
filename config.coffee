@@ -9,6 +9,8 @@ exports.config =
     public: "lib/"
     watched: ['src', 'test', 'vendor']
 
+  sourceMaps: false
+
   files:
     javascripts:
       joinTo: 
