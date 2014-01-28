@@ -12,15 +12,17 @@ class Neck.Helper.list extends Neck.Helper
     @itemName or= 'item'
     @items = []
 
-    @watch '_main', (list)->
+    @watch '_main', (@list)->
       @trigger 'remove'
       @add(item) for item in @list
-      undefined
-        
+      undefined  
 
     @watch 'listSort', (sort)->
       if sort
         @list = _.sortBy @list, (i)-> sort(i.item)
+        for item in @list
+          _.findWhere(@items, item: item).$el.appendTo @$el
+        undefined
 
     @watch 'listFilter', (filter)->
      if filter or filter is ""
@@ -41,11 +43,6 @@ class Neck.Helper.list extends Neck.Helper
       index: @items.length
     )
     @$el.append item.render().$el
-
-  sort: ->
-    for item in @list
-      _.findWhere(@items, item: item).$el.appendTo @$el
-    undefined
 
 class Item extends Neck.Controller
   divWrapper: false
