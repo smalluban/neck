@@ -72,6 +72,12 @@ class Neck.Controller extends Backbone.View
 
   remove: =>
     @trigger 'remove'
+
+    # Clear references
+    @parent = undefined
+    @scope = undefined
+
+    # Trigger Backbone remove 
     super
 
   clear: =>
@@ -154,6 +160,14 @@ class Neck.Controller extends Backbone.View
       catch e
         undefined
 
+    if value.match @REGEXPS.EXPRESSION
+      options.get = =>
+        try
+          eval value
+          @apply key
+        catch e
+          undefined
+
     if value.match @REGEXPS.ONLY_PROPERTY
       options.set = (newVal)=>
         model = value.split('.')
@@ -181,7 +195,7 @@ class Neck.Controller extends Backbone.View
           @scope._resolves[key].push { controller: controller, key: resolve }
       # Clear when empty
       unless @scope._resolves[key].length
-        delete @scope._resolves[key]
+        @scope._resolves[key] = undefined
 
   _watch: (key, callback, context = @)->
     if @scope.hasOwnProperty(key) or !@parent
