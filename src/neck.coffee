@@ -41,8 +41,6 @@ class Neck.Controller extends Backbone.View
       function|arguments|interface|protected|implements|instanceof|undefined|window)($|\.)"""
     SCOPE_PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\(\)\{\}]*)/g
     TWICE_SCOPE: /(scope\.[^\ ]*\.)scope\./
-    EXPRESSION: /[-+=\(\)\{\}\:]+/
-    METHOD: /[a-zA-Z$_][^\ \(\)\{\}\:]*\(/
     OBJECT: /^\{.+\}$/g
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
     SLASHES: /\//g
@@ -144,10 +142,6 @@ class Neck.Controller extends Backbone.View
     if texts.length
       s = s.replace(/###/g, ()-> texts.shift()) 
 
-     # Add brackets when string is object instance
-    if s.match @REGEXPS.OBJECT
-      s = "(#{s})"
-
     [s, _.uniq resolves]
 
   _setAccessor: (key, value, controller = @parent)->
@@ -160,21 +154,12 @@ class Neck.Controller extends Backbone.View
       catch e
         undefined
 
-    if value.match @REGEXPS.EXPRESSION
-      options.get = =>
-        try
-          result = eval value
-          @apply key
-          result
-        catch e
-          undefined
-
     if value.match @REGEXPS.ONLY_PROPERTY
       options.set = (newVal)=>
         model = value.split('.')
         property = model.pop()
         
-        # # Create objects when they are undefined
+        # Create objects when they are undefined
         obj = scope
         for m in model.slice(1)
           obj = obj[m] = {} unless obj[m]
@@ -182,6 +167,16 @@ class Neck.Controller extends Backbone.View
         try
           (eval model.join('.'))[property] = newVal
           @apply key if model.length > 1
+        catch e
+          undefined
+    else if value.match @REGEXPS.OBJECT
+      value = "(#{value})"
+    else 
+      options.get = =>
+        try
+          result = eval value
+          @apply key
+          result
         catch e
           undefined
     
