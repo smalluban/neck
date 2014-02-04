@@ -163,8 +163,9 @@ class Neck.Controller extends Backbone.View
     if value.match @REGEXPS.EXPRESSION
       options.get = =>
         try
-          eval value
+          result = eval value
           @apply key
+          result
         catch e
           undefined
 
