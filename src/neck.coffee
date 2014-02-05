@@ -42,7 +42,7 @@ class Neck.Controller extends Backbone.View
 
   divWrapper: true
   template: false
-  
+
   constructor: (opts)->
     super
 
@@ -97,7 +97,25 @@ class Neck.Controller extends Backbone.View
     for el in @$el
       @_parseNode el 
 
+    @_setupRoutes()
+
     @
+
+  _setupRoutes: ->
+    if @routes
+      for key, route of @routes
+        route = 'main': route if typeof route is 'string'
+        @routes[key] = ((route)=>
+          (args...)=>
+            for yieldName, options of route 
+              console.log options
+              @_yieldList?[yieldName]?.append (options.controller or options), 
+                _.extend({}, {query: args}, options.params),
+                options.refresh, 
+                options.replace
+          )(route)
+      @_router = new Backbone.Router routes: @routes
+      @routes = undefined
 
   _parseNode: (node)->
     if node?.attributes
