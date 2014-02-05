@@ -1,6 +1,7 @@
 class Neck.Helper.yield extends Neck.Helper
-  attributes: ['yieldView']
+  attributes: ['yieldView', 'yieldReplace']
   template: true
+  replace: false
 
   constructor: ->
     super
@@ -23,6 +24,8 @@ class Neck.Helper.yield extends Neck.Helper
     if @scope.yieldView
       @append @scope.yieldView
 
+    @replace or= @scope.yieldReplace
+
   _createController: (controllerPath, params, parent)->
     Controller = Neck.DI.load(controllerPath, type: 'controller')
     controller = new Controller template: "#{controllerPath}", params: params
@@ -40,7 +43,7 @@ class Neck.Helper.yield extends Neck.Helper
 
     controller
 
-  append: (controllerPath, params, refresh = false, replace = false)->
+  append: (controllerPath, params, refresh = false, replace = @replace)->
     if replace and @_yieldChild
       if controllerPath is @_yieldChild._yieldPath and not refresh
         @_yieldChild._yieldChild?.remove()
