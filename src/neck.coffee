@@ -113,6 +113,7 @@ class Neck.Controller extends Backbone.View
                 _.extend({}, {query: args}, options.params),
                 options.refresh, 
                 options.replace
+            undefined
           )(route)
       @_router = new Backbone.Router routes: @routes
       @routes = undefined
