@@ -54,8 +54,9 @@ class Neck.Controller extends Backbone.View
     if @parent
       @listenTo @parent, 'remove', @remove
       @listenTo @parent, 'clear', @clear
-
-    @template = opts.template if opts.template
+    
+    if opts.template and not @template
+      @template = opts.template
 
     if @template is true
       @template = @$el.html()
@@ -82,9 +83,12 @@ class Neck.Controller extends Backbone.View
     @trigger 'clear' # Remove childs listings
 
     if @template
-      if typeof (template = Neck.DI.load(@template, type: 'template')) is 'function'
+      unless typeof @template is 'function'
+        if typeof (template = Neck.DI.load(@template, type: 'template')) is 'function'
+          template = template @scope
+      else
         template = template @scope
-    
+          
       if @divWrapper
         @$el.html template
       else
@@ -141,7 +145,7 @@ class Neck.Controller extends Backbone.View
 
   _setAccessor: (key, value, controller = @parent)->
     scope = controller.scope
-    console.log [value, resolves] = @_parseValue value
+    [value, resolves] = @_parseValue value
 
     options = enumerable: true, get: -> 
       try
