@@ -34,16 +34,11 @@ Neck.DI =
 class Neck.Controller extends Backbone.View  
   REGEXPS:
     TEXTS: /\'[^\']+\'/g
-    RESERVED_KEYWORDS: new RegExp """
-      ^(do|if|in|for|let|new|try|var|case|else|enum|eval|false|null|this|true|
-      void|with|break|catch|class|const|super|throw|while|yield|delete|export|import|public|
-      return|static|switch|typeof|default|extends|finally|package|private|continue|debugger|
-      function|arguments|interface|protected|implements|instanceof|undefined|window)($|\.)"""
+    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|window)($|\.|\ )/g
     SCOPE_PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\(\)\{\}]*)/g
     TWICE_SCOPE: /(scope\.[^\ ]*\.)scope\./
     OBJECT: /^\{.+\}$/g
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
-    SLASHES: /\//g
 
   divWrapper: true
   template: false
@@ -146,7 +141,7 @@ class Neck.Controller extends Backbone.View
 
   _setAccessor: (key, value, controller = @parent)->
     scope = controller.scope
-    [value, resolves] = @_parseValue value
+    console.log [value, resolves] = @_parseValue value
 
     options = enumerable: true, get: -> 
       try
