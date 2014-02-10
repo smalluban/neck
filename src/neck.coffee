@@ -23,10 +23,15 @@ Neck.DI =
       try
         return require (if options.type then @[options.type + 'Prefix'] + "/" else '') + route
       catch
-        if window[route]
-          return window[route]
-        else if options.type isnt 'template'
-          return throw "No defined '#{route}' object for Neck dependency injection"
+        try
+          if destiny = eval(route)
+            return destiny
+          else
+            if options.type isnt 'template'
+              return throw "No defined '#{route}' object for Neck dependency injection"
+        catch
+          if options.type isnt 'template'
+            return throw "No defined '#{route}' object for Neck dependency injection"
 
     route
       
