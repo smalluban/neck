@@ -64,6 +64,9 @@ class Neck.Controller extends Backbone.View
 
     @params = opts.params or {}
 
+    if @routes 
+      @_setupRoutes()
+
   remove: =>
     @trigger 'remove'
 
@@ -94,10 +97,8 @@ class Neck.Controller extends Backbone.View
       else
         @setElement $(template)
     
-    for el in @$el
+    for el in @$el.children()
       @_parseNode el 
-
-    @_setupRoutes()
 
     @
 
@@ -107,8 +108,7 @@ class Neck.Controller extends Backbone.View
         route = 'main': route if typeof route is 'string'
         @routes[key] = ((route)=>
           (args...)=>
-            for yieldName, options of route 
-              console.log options
+            for yieldName, options of route
               @_yieldList?[yieldName]?.append (options.controller or options), 
                 _.extend({}, {query: args}, options.params),
                 options.refresh, 
@@ -116,7 +116,6 @@ class Neck.Controller extends Backbone.View
             undefined
           )(route)
       @_router = new Backbone.Router routes: @routes
-      @routes = undefined
 
   _parseNode: (node)->
     if node?.attributes

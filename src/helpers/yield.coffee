@@ -1,5 +1,5 @@
 class Neck.Helper.yield extends Neck.Helper
-  attributes: ['yieldView', 'yieldReplace']
+  attributes: ['yieldView', 'yieldParams', 'yieldReplace']
   template: true
   replace: false
 
@@ -21,10 +21,10 @@ class Neck.Helper.yield extends Neck.Helper
     @listenTo @context, 'clear remove', =>
       delete @list[@name]
 
-    if @scope.yieldView
-      @append @scope.yieldView
-
     @replace or= @scope.yieldReplace
+
+    if @scope.yieldView
+      @append @scope.yieldView, @scope.yieldParams
 
   _createController: (controllerPath, params, parent)->
     Controller = Neck.DI.load(controllerPath, type: 'controller')
@@ -68,4 +68,4 @@ class Neck.Helper.yield extends Neck.Helper
 
       parent = parent._yieldChild
   
-    @_createController controllerPath, params, parent
+    @_createController controllerPath, params , parent
