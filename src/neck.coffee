@@ -68,6 +68,9 @@ class Neck.Controller extends Backbone.View
 
     @params = opts.params or {}
 
+    if @routes 
+      @_setupRoutes()
+
   remove: =>
     @trigger 'remove:before'
 
@@ -101,7 +104,7 @@ class Neck.Controller extends Backbone.View
       else
         @setElement $(template)
     
-    for el in @$el
+    for el in @$el.children()
       @_parseNode el 
 
     @trigger 'render:after'
@@ -302,4 +305,3 @@ class Neck.App extends Neck.Controller
       @once 'render:after', =>
         new Neck.Router yields: @_yieldList, routes: @routes
         Backbone.history.start if @pushState then pushState: true
-    
