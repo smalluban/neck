@@ -4,7 +4,7 @@ class HrefHelper extends Neck.Helper
     super 
     
     opts.e.preventDefault()
-    (new Backbone.Router).navigate @scope._main, trigger: true
+    Neck.Router.prototype.navigate @scope._main, trigger: true
 
 class Neck.Helper.href
 

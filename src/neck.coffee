@@ -34,7 +34,6 @@ Neck.DI =
             return throw "No defined '#{route}' object for Neck dependency injection"
 
     route
-      
 
 class Neck.Controller extends Backbone.View  
   REGEXPS:
@@ -57,8 +56,8 @@ class Neck.Controller extends Backbone.View
 
     # Listen to parent events
     if @parent
-      @listenTo @parent, 'remove', @remove
-      @listenTo @parent, 'clear', @clear
+      @listenTo @parent, 'remove:before', @remove
+      @listenTo @parent, 'render:clear', @clear
     
     if opts.template and not @template
       @template = opts.template
@@ -70,7 +69,7 @@ class Neck.Controller extends Backbone.View
     @params = opts.params or {}
 
   remove: =>
-    @trigger 'remove'
+    @trigger 'remove:before'
 
     # Clear references
     @parent = undefined
@@ -79,13 +78,16 @@ class Neck.Controller extends Backbone.View
     # Trigger Backbone remove 
     super
 
+    @trigger 'remove:after'
+
   clear: =>
-    @trigger 'clear'
+    @trigger 'render:clear'
     @off()
     @stopListening()
 
   render: ->
-    @trigger 'clear' # Remove childs listings
+    @trigger 'render:clear' # Remove childs listings
+    @trigger 'render:before' 
 
     if @template
       unless typeof @template is 'function'
@@ -102,26 +104,9 @@ class Neck.Controller extends Backbone.View
     for el in @$el
       @_parseNode el 
 
-    @_setupRoutes()
+    @trigger 'render:after'
 
     @
-
-  _setupRoutes: ->
-    if @routes
-      for key, route of @routes
-        route = 'main': route if typeof route is 'string'
-        @routes[key] = ((route)=>
-          (args...)=>
-            for yieldName, options of route 
-              console.log options
-              @_yieldList?[yieldName]?.append (options.controller or options), 
-                _.extend({}, {query: args}, options.params),
-                options.refresh, 
-                options.replace
-            undefined
-          )(route)
-      @_router = new Backbone.Router routes: @routes
-      @routes = undefined
 
   _parseNode: (node)->
     if node?.attributes
@@ -275,3 +260,46 @@ class Neck.Helper extends Neck.Controller
       for attr in @attributes
         if value = @el.attributes[Neck.Tools.camelToDash(attr)]?.value
           @_setAccessor attr, value
+
+class Neck.Router extends Backbone.Router
+
+  PARAM_REGEXP: /\:(\w+)/gi
+
+  constructor:(opts)->
+    super
+    @yields = opts.yields
+
+  route:(route, settings, callback)->
+    # Set string to yields 'main' with default settings
+    settings = 'main': settings if typeof settings is 'string'
+    
+    myCallback = (args...)=>
+      if typeof (query = _.last(args)) is 'object'
+        args.pop()
+      else
+        query = {}
+
+      if args.length and !_.isRegExp(route)
+        route.replace @PARAM_REGEXP, (all, name)-> query[name] = args.shift()
+
+      for yieldName, options of settings
+        options.params or= {}
+        @yields[yieldName]?.append (options.controller or options), 
+          _.extend({}, options.params, query),
+          options.refresh,
+          options.replace
+
+    super(route, myCallback)
+
+class Neck.App extends Neck.Controller
+
+  pushState: true
+
+  constructor:(opts)->
+    super
+
+    if @routes 
+      @once 'render:after', =>
+        new Neck.Router yields: @_yieldList, routes: @routes
+        Backbone.history.start if @pushState then pushState: true
+    
