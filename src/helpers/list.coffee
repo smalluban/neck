@@ -13,26 +13,34 @@ class Neck.Helper.list extends Neck.Helper
     @items = []
 
     @watch '_main', (@list)->
-      @trigger 'remove'
-      @add(item) for item in @list
-      undefined  
+      @resetItems()
+
+      @apply 'listSort' if @scope.listSort 
+      @apply 'listFilter' if @scope.listFilter
 
     @watch 'listSort', (sort)->
       if sort
-        @list = _.sortBy @list, (i)-> sort(i.item)
+        @list = _.sortBy @list, (i)-> sort(i)
         for item in @list
           _.findWhere(@items, item: item).$el.appendTo @$el
         undefined
 
     @watch 'listFilter', (filter)->
-     if filter or filter is ""
-      filter = new RegExp filter, "gi"
-      for i in @items
-        if (i.item + "").match filter
-          i.$el.removeClass 'ui-hide'
-        else
-          i.$el.addClass 'ui-hide'
-      undefined
+      if filter or filter is ""
+        filter = new RegExp filter, "gi"
+        for i in @items
+          if (i.item + "").match filter
+            i.$el.removeClass 'ui-hide'
+          else
+            i.$el.addClass 'ui-hide'
+        undefined
+
+  resetItems: ->
+    item.remove() for item in @items
+    @items = []
+
+    @add(item) for item in @list
+    undefined
 
   add: (item)->
     @items.push item = new Item(
@@ -49,6 +57,8 @@ class Item extends Neck.Controller
 
   constructor: (opts)->
     super
+
+    @item = opts.item
     
     # Set own property
     Object.defineProperty @scope, opts.itemName,
