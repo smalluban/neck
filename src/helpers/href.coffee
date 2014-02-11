@@ -9,5 +9,8 @@ class HrefHelper extends Neck.Helper
 class Neck.Helper.href
 
   constructor: (opts)->
+    # Add href for styling purposes
+    opts.el.attr 'href', '#'
+
     opts.el.on 'click', (e)->
       new HrefHelper _.extend opts, e: e
