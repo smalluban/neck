@@ -152,8 +152,8 @@ class Neck.Controller extends Backbone.View
 
     [s, _.uniq resolves]
 
-  _setAccessor: (key, value, controller = @parent)->
-    scope = controller.scope
+  _setAccessor: (key, value)->
+    scope = @parent.scope
     [value, resolves] = @_parseValue value
 
     options = enumerable: true, get: -> 
@@ -190,16 +190,16 @@ class Neck.Controller extends Backbone.View
     
     Object.defineProperty @scope, key, options
 
-    if controller isnt @
-      @scope._resolves[key] = []
-      for resolve in resolves
-        if controller.scope._resolves[resolve]
-          @scope._resolves[key] = _.union @scope._resolves[key], controller.scope._resolves[resolve]
-        else
-          @scope._resolves[key].push { controller: controller, key: resolve }
-      # Clear when empty
-      unless @scope._resolves[key].length
-        @scope._resolves[key] = undefined
+    @scope._resolves[key] = []
+    for resolve in resolves
+      if @parent.scope._resolves[resolve]
+        @scope._resolves[key] = _.union @scope._resolves[key], @parent.scope._resolves[resolve]
+      else
+        @scope._resolves[key].push { controller: @parent, key: resolve }
+    
+    # Clear when empty
+    unless @scope._resolves[key].length
+      @scope._resolves[key] = undefined
 
   _watch: (key, callback, context = @)->
     if @scope.hasOwnProperty(key) or !@parent
