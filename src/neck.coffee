@@ -271,9 +271,6 @@ class Neck.Router extends Backbone.Router
     unless @app = opts?.app
       throw "Neck.Router require connection with App Controller"
 
-    unless @app._yieldList
-      throw "No yields for routing in App"
-
   route:(route, settings)->
     myCallback = (args...)=>
       query = {}
@@ -284,7 +281,7 @@ class Neck.Router extends Backbone.Router
           query[name] = param if param = args.shift()
 
       for yieldName, options of (settings.yields or main: controller: settings.controller)
-        throw "No '#{yieldName}' yield defined in App" if !@app._yieldList[yieldName]
+        throw "No '#{yieldName}' yield defined in App" unless @app._yieldList?[yieldName]
 
         @app._yieldList[yieldName].append (options.controller or options), 
           _.extend({}, options.params, query),
@@ -304,6 +301,6 @@ class Neck.App extends Neck.Controller
     super
 
     if @routes
-      @once 'render:after', =>
-        @router = new Neck.Router app: @, routes: @routes
-        Backbone.history.start @history if @history
+      @router = new Neck.Router app: @, routes: @routes
+      if @history
+        @once 'render:after', => Backbone.history.start @history 
