@@ -56,9 +56,9 @@ class Neck.Controller extends Backbone.View
 
     # Listen to parent events
     if @parent
-      @listenTo @parent, 'remove:before', @remove
       @listenTo @parent, 'render:clear', @clear
-    
+      @listenTo @parent, 'remove:before', @remove
+      
     if opts.template and not @template
       @template = opts.template
 
@@ -67,9 +67,6 @@ class Neck.Controller extends Backbone.View
       @$el.empty()
 
     @params = opts.params or {}
-
-    if @routes 
-      @_setupRoutes()
 
   remove: =>
     @trigger 'remove:before'
@@ -84,9 +81,9 @@ class Neck.Controller extends Backbone.View
     @trigger 'remove:after'
 
   clear: =>
-    @trigger 'render:clear'
     @off()
     @stopListening()
+    @trigger 'render:clear'
 
   render: ->
     @trigger 'render:clear' # Remove childs listings
@@ -270,38 +267,43 @@ class Neck.Router extends Backbone.Router
 
   constructor:(opts)->
     super
-    @yields = opts.yields
 
-  route:(route, settings, callback)->
-    # Set string to yields 'main' with default settings
-    settings = 'main': settings if typeof settings is 'string'
-    
+    unless @app = opts?.app
+      throw "Neck.Router require connection with App Controller"
+
+    unless @app._yieldList
+      throw "No yields for routing in App"
+
+  route:(route, settings)->
     myCallback = (args...)=>
-      if typeof (query = _.last(args)) is 'object'
-        args.pop()
-      else
-        query = {}
+      query = {}
+      args.pop() if typeof (query = _.last(args)) is 'object'
 
       if args.length and !_.isRegExp(route)
-        route.replace @PARAM_REGEXP, (all, name)-> query[name] = args.shift()
+        route.replace @PARAM_REGEXP, (all, name)->
+          query[name] = param if param = args.shift()
 
-      for yieldName, options of settings
-        options.params or= {}
-        @yields[yieldName]?.append (options.controller or options), 
+      for yieldName, options of (settings.yields or main: controller: settings.controller)
+        throw "No '#{yieldName}' yield defined in App" if !@app._yieldList[yieldName]
+
+        @app._yieldList[yieldName].append (options.controller or options), 
           _.extend({}, options.params, query),
           options.refresh,
           options.replace
+          
+      @app.scope._state = settings.state if settings.state
 
     super(route, myCallback)
 
 class Neck.App extends Neck.Controller
 
-  pushState: true
+  routes: false
+  history: pushState: true
 
   constructor:(opts)->
     super
 
-    if @routes 
+    if @routes
       @once 'render:after', =>
-        new Neck.Router yields: @_yieldList, routes: @routes
-        Backbone.history.start if @pushState then pushState: true
+        @router = new Neck.Router app: @, routes: @routes
+        Backbone.history.start @history if @history
