@@ -1,5 +1,5 @@
 class Neck.Helper.list extends Neck.Helper
-  attributes: ['listItem', 'listSort', 'listFilter', 'listView']
+  attributes: ['listItem', 'listSort', 'listFilter', 'listView', 'listEmpty']
   template: true
 
   constructor: ->
@@ -8,7 +8,10 @@ class Neck.Helper.list extends Neck.Helper
     unless @scope._main instanceof Array
       return new Error "Given object has to be instance of Array"
 
-    @template = @scope.listView if @scope.listView
+    @itemTemplate = @template
+    @itemTemplate = @scope.listView if @scope.listView
+    @template = @scope.listEmpty
+
     @itemName or= 'item'
     @items = []
 
@@ -38,13 +41,17 @@ class Neck.Helper.list extends Neck.Helper
   resetItems: ->
     item.remove() for item in @items
     @items = []
+    @$el.empty()
 
-    @add(item) for item in @list
-    undefined
+    if @list.length
+      @add(item) for item in @list
+      undefined
+    else if @scope.listEmpty and @template
+      @render()
 
   add: (item)->
     @items.push item = new Item(
-      template: @template
+      template: @itemTemplate
       parent: @
       item: item
       itemName: @itemName

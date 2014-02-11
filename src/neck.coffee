@@ -46,6 +46,7 @@ class Neck.Controller extends Backbone.View
 
   divWrapper: true
   template: false
+  parseSelf: true
 
   constructor: (opts)->
     super
@@ -101,11 +102,9 @@ class Neck.Controller extends Backbone.View
       else
         @setElement $(template)
     
-    for el in @$el
-      @_parseNode el
+    @_parseNode el for el in (if @parseSelf then @$el else @$el.children())
 
     @trigger 'render:after'
-
     @
 
   _parseNode: (node)->
@@ -251,6 +250,7 @@ class Neck.Controller extends Backbone.View
       @trigger "refresh:#{key}"
 
 class Neck.Helper extends Neck.Controller
+  parseSelf: false
 
   constructor: (opts)->
     super
