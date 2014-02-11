@@ -101,8 +101,8 @@ class Neck.Controller extends Backbone.View
       else
         @setElement $(template)
     
-    for el in @$el.children()
-      @_parseNode el 
+    for el in @$el
+      @_parseNode el
 
     @trigger 'render:after'
 
