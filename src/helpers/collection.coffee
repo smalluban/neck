@@ -41,6 +41,7 @@ class Neck.Helper.collection extends Neck.Helper
   addItem: (model)=>
     @items.push item = new Item(
       template: @template
+      externalTemplate: @scope.collectionView
       parent: @parent
       model: model
       itemName: @scope.collectionItem
@@ -69,6 +70,8 @@ class Item extends Neck.Controller
 
   constructor: (opts)->
     super
+
+    @model = opts.model
     
     # Set own property
     Object.defineProperty @scope, opts.itemName,
@@ -80,6 +83,6 @@ class Item extends Neck.Controller
     # For iterating number in view
     @scope._index = opts.index
     
-    unless @templateBody
+    if opts.externalTemplate
       @listenTo @scope[opts.itemName], 'change', => 
         @$el.replaceWith @render().$el
