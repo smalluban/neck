@@ -29,6 +29,8 @@ class EventHelper extends Neck.Helper
       @stopListening()
 
 class Event
+  template: false
+  
   constructor: (options)->
     options.el.on @eventType, (e)=>
       e.preventDefault()
