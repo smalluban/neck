@@ -29,6 +29,7 @@ class Neck.Helper.yield extends Neck.Helper
   _createController: (controllerPath, params, parent)->
     Controller = Neck.DI.load(controllerPath, type: 'controller')
     controller = new Controller template: "#{controllerPath}", params: params, parent: if @scope.yieldInherit then @context
+    controller.scope._context = controller if @scope.yieldInherit
     
     # Inherit yields
     controller._yieldList = Object.create @list
