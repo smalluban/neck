@@ -18,7 +18,7 @@ class Neck.Helper.yield extends Neck.Helper
     else
       @list[@name] = @
 
-    @listenTo @context, 'clear remove', =>
+    @listenTo @context, 'render:clear remove:after', =>
       delete @list[@name]
 
     @replace or= @scope.yieldReplace
@@ -37,8 +37,8 @@ class Neck.Helper.yield extends Neck.Helper
 
     # Set parent controller
     parent._yieldChild = controller
-    parent.listenTo controller, "remove", -> @_yieldChild = undefined
-    controller.listenTo parent, "remove", -> controller.remove()
+    parent.listenTo controller, "remove:after", -> @_yieldChild = undefined
+    controller.listenTo parent, "remove:after", -> controller.remove()
 
     @$el.append controller.render().$el
 
