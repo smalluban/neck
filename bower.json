@@ -1,6 +1,6 @@
 {
   "name": "neck",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "authors": [
     "smalluban"
   ],
@@ -27,15 +27,6 @@
     "tests"
   ],
   "dependencies": {
-    "underscore": ">=1.5.0",
-    "backbone": "~1.1.0"
-  },
-  "overrides": {
-    "backbone": {
-      "main": "backbone.js"
-    },
-    "underscore": {
-      "main": "underscore.js"
-    }
+    "backbone": "~1.1.1"
   }
 }
