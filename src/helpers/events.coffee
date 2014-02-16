@@ -21,12 +21,11 @@ class EventHelper extends Neck.Helper
   constructor: (opts)->
     super
     
-    setTimeout =>
-      if typeof @scope._main is 'function'
-        @scope._main.call @scope._context, opts.e
+    if typeof @scope._main is 'function'
+      @scope._main.call @scope._context, opts.e
 
-      @off()
-      @stopListening()
+    @off()
+    @stopListening()
 
 class Event
   template: false
