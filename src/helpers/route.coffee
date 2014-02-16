@@ -14,7 +14,8 @@ class RouteHelper extends Neck.Helper
     target.append @scope._main, @scope.routeParams, @scope.routeRefresh, @scope.routeReplace
 
 class Neck.Helper.route
-
+  template: false
+  
   constructor: (opts)->
     opts.el.on 'click', (e)->
       new RouteHelper _.extend opts, e: e

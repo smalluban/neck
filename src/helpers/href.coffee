@@ -7,6 +7,7 @@ class HrefHelper extends Neck.Helper
     Neck.Router.prototype.navigate @scope._main, trigger: true
 
 class Neck.Helper.href
+  template: false
 
   constructor: (opts)->
     # Add href for styling purposes
