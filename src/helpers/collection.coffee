@@ -1,6 +1,37 @@
+class Neck.Helper.collectionItem extends Neck.Controller
+  divWrapper: false
+
+  constructor: (opts)->
+    super
+
+    @model = opts.model
+    
+    # Set own property
+    Object.defineProperty @scope, opts.itemName,
+      enumerable: true
+      writable: true
+      configurable: true
+      value: opts.model
+
+    # For iterating number in view
+    @scope._index = opts.index
+    
+    if opts.externalTemplate
+      @listenTo @scope[opts.itemName], 'change', => 
+        @$el.replaceWith @render().$el
+
 class Neck.Helper.collection extends Neck.Helper
-  attributes: ['collectionItem', 'collectionSort', 'collectionFilter', 'collectionView', 'collectionEmpty']
+  attributes: [
+    'collectionItem',
+    'collectionSort',
+    'collectionFilter',
+    'collectionView',
+    'collectionEmpty',
+    'collectionController'
+  ]
+
   template: true
+  itemController: Neck.Helper.collectionItem
 
   constructor: ->
     super
@@ -11,6 +42,12 @@ class Neck.Helper.collection extends Neck.Helper
     @itemTemplate = @template
     @itemTemplate = @scope.collectionView if @scope.collectionView
     @template = @scope.collectionEmpty
+
+    if controller = @scope.collectionController
+      if typeof controller is 'string'
+        @itemController = Neck.DI.load(controller, type: 'controller')
+      else
+        @itemController = controller
     
     @scope.collectionItem or= 'item'
     @items = []
@@ -42,7 +79,7 @@ class Neck.Helper.collection extends Neck.Helper
         undefined
 
   addItem: (model)=>
-    @items.push item = new Item(
+    @items.push item = new @itemController(
       template: @itemTemplate
       externalTemplate: @scope.collectionView
       parent: @parent
@@ -73,26 +110,3 @@ class Neck.Helper.collection extends Neck.Helper
   renderEmpty:->
     if @template and !@collection.length
       @render()
-      
-
-class Item extends Neck.Controller
-  divWrapper: false
-
-  constructor: (opts)->
-    super
-
-    @model = opts.model
-    
-    # Set own property
-    Object.defineProperty @scope, opts.itemName,
-      enumerable: true
-      writable: true
-      configurable: true
-      value: opts.model
-
-    # For iterating number in view
-    @scope._index = opts.index
-    
-    if opts.externalTemplate
-      @listenTo @scope[opts.itemName], 'change', => 
-        @$el.replaceWith @render().$el

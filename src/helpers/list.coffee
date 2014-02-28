@@ -1,6 +1,33 @@
+class Neck.Helper.listItem extends Neck.Controller
+  divWrapper: false
+
+  constructor: (opts)->
+    super
+
+    @item = opts.item
+    
+    # Set own property
+    Object.defineProperty @scope, opts.itemName,
+      enumerable: true
+      writable: true
+      configurable: true
+      value: opts.item
+
+    # For iterating number in view
+    @scope._index = opts.index
+
 class Neck.Helper.list extends Neck.Helper
-  attributes: ['listItem', 'listSort', 'listFilter', 'listView', 'listEmpty']
+  attributes: [
+    'listItem',
+    'listSort',
+    'listFilter',
+    'listView',
+    'listEmpty',
+    'listController'
+  ]
+
   template: true
+  itemController: Neck.Helper.listItem
 
   constructor: ->
     super
@@ -11,6 +38,12 @@ class Neck.Helper.list extends Neck.Helper
     @itemTemplate = @template
     @itemTemplate = @scope.listView if @scope.listView
     @template = @scope.listEmpty
+
+    if controller = @scope.listController
+      if typeof controller is 'string'
+        @itemController = Neck.DI.load(controller, type: 'controller')
+      else
+        @itemController = controller
 
     @itemName or= 'item'
     @items = []
@@ -50,7 +83,7 @@ class Neck.Helper.list extends Neck.Helper
       @render()
 
   add: (item)->
-    @items.push item = new Item(
+    @items.push item = new @itemController(
       template: @itemTemplate
       parent: @
       item: item
@@ -58,21 +91,3 @@ class Neck.Helper.list extends Neck.Helper
       index: @items.length
     )
     @$el.append item.render().$el
-
-class Item extends Neck.Controller
-  divWrapper: false
-
-  constructor: (opts)->
-    super
-
-    @item = opts.item
-    
-    # Set own property
-    Object.defineProperty @scope, opts.itemName,
-      enumerable: true
-      writable: true
-      configurable: true
-      value: opts.item
-
-    # For iterating number in view
-    @scope._index = opts.index
