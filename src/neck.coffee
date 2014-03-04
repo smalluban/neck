@@ -40,7 +40,7 @@ class Neck.Controller extends Backbone.View
     TEXTS: /\'[^\']+\'/g
     RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|window)($|\.|\ )/g
     SCOPE_PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\(\)\{\}]*)/g
-    TWICE_SCOPE: /(scope\.[^\ ]*\.)scope\./
+    TWICE_SCOPE: /((window|scope)\.[^\ ]*\.)scope\./
     OBJECT: /^\{.+\}$/g
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
 
