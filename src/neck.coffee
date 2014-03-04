@@ -181,9 +181,7 @@ class Neck.Controller extends Backbone.View
     else 
       options.get = =>
         try
-          result = eval value
-          @apply key
-          result
+          eval value
         catch e
           undefined
     
