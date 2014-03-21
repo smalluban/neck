@@ -165,7 +165,7 @@ class Neck.Controller extends Backbone.View
           undefined
       set: (newVal)=>
         cacheVal = newVal
-        value = "cacheValue"
+        value = "cacheVal"
         @apply key.split('.')[0]
 
     if value.match @REGEXPS.ONLY_PROPERTY
