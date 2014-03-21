@@ -152,14 +152,21 @@ class Neck.Controller extends Backbone.View
     [s, _.uniq resolves]
 
   _setAccessor: (key, value)->
+    cacheVal = ""
     scope = @parent.scope
     [value, resolves] = @_parseValue value
 
-    options = enumerable: true, get: -> 
-      try
-        eval value
-      catch e
-        undefined
+    options = 
+      enumerable: true
+      get: -> 
+        try
+          eval value
+        catch e
+          undefined
+      set: (newVal)=>
+        cacheVal = newVal
+        value = "cacheValue"
+        @apply key.split('.')[0]
 
     if value.match @REGEXPS.ONLY_PROPERTY
       options.set = (newVal)=>
@@ -178,12 +185,6 @@ class Neck.Controller extends Backbone.View
           undefined
     else if value.match @REGEXPS.OBJECT
       value = "(#{value})"
-    else 
-      options.get = =>
-        try
-          eval value
-        catch e
-          undefined
     
     Object.defineProperty @scope, key, options
 
