@@ -279,7 +279,7 @@ class Neck.Router extends Backbone.Router
         route.replace @PARAM_REGEXP, (all, name)->
           query[name] = param if param = args.shift()
 
-      for yieldName, options of (settings.yields or main: controller: settings.controller)
+      for yieldName, options of (settings.yields or main: controller: settings.controller or settings)
         throw "No '#{yieldName}' yield defined in App" unless @app._yieldList?[yieldName]
 
         @app._yieldList[yieldName].append (options.controller or options), 
