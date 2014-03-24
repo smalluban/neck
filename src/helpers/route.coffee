@@ -9,7 +9,7 @@ class RouteHelper extends Neck.Helper
     container = @scope.routeYield or 'main'
     
     unless target = @scope._context._yieldList[container]
-      throw new Error "No yield '#{container}' for route in yields chain"
+      throw "No yield '#{container}' for route in yields chain"
    
     target.append @scope._main, @scope.routeParams, @scope.routeRefresh, @scope.routeReplace
 

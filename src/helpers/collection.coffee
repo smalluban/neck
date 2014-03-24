@@ -36,8 +36,8 @@ class Neck.Helper.collection extends Neck.Helper
   constructor: ->
     super
 
-    unless @scope._main instanceof Backbone.Collection
-      return new Error "Given object has to be instance of Backbone.Collection"
+    unless (@scope._main is undefined) or @scope._main instanceof Backbone.Collection
+      throw "Given object has to be instance of Backbone.Collection"
 
     @itemTemplate = @template
     @itemTemplate = @scope.collectionView if @scope.collectionView
@@ -54,12 +54,12 @@ class Neck.Helper.collection extends Neck.Helper
     
     @watch '_main', (collection)->
       @stopListening @collection if @collection
-      @collection = collection
 
-      @listenTo @collection, "add", @addItem
-      @listenTo @collection, "remove", @removeItem
-      @listenTo @collection, "sort", @sortItems
-      @listenTo @collection, "reset", @resetItems
+      if @collection = collection
+        @listenTo @collection, "add", @addItem
+        @listenTo @collection, "remove", @removeItem
+        @listenTo @collection, "sort", @sortItems
+        @listenTo @collection, "reset", @resetItems
 
       @resetItems()
 
@@ -79,6 +79,7 @@ class Neck.Helper.collection extends Neck.Helper
         undefined
 
   addItem: (model)=>
+    console.log model
     @items.push item = new @itemController(
       template: @itemTemplate
       externalTemplate: @scope.collectionView
@@ -91,7 +92,8 @@ class Neck.Helper.collection extends Neck.Helper
 
   removeItem: (model)=>
     _.findWhere(@items, model: model).remove()
-    @renderEmpty()
+    unless @collection?.length
+      @renderEmpty() 
 
   sortItems: =>
     for model in @collection.models
@@ -102,11 +104,12 @@ class Neck.Helper.collection extends Neck.Helper
     item.remove() for item in @items
     @items = []
     @$el.empty()
-    @renderEmpty()
 
-    @addItem(item) for item in @collection.models
-    undefined
+    if @collection?.length
+      @addItem(item) for item in @collection.models
+      undefined
+    else
+      @renderEmpty()
 
   renderEmpty:->
-    if @template and !@collection.length
-      @render()
+    @render() if @template

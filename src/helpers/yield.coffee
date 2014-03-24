@@ -14,7 +14,7 @@ class Neck.Helper.yield extends Neck.Helper
     @list = @context._yieldList or= {}
 
     if @list[@name]
-      throw new Error "There is already yield with '#{@name}' name in App"
+      throw "There is already yield with '#{@name}' name in App"
     else
       @list[@name] = @
 
