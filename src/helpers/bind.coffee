@@ -23,6 +23,9 @@ class Neck.Helper.bind extends Neck.Helper
           @$el.val value or ''
       @_updated = false
 
+    @on 'remove:before', -> 
+      @undelegateEvents()
+
   calculateValue: (s)->
     if s.match @NUMBER
       Number s.replace(',','.')
