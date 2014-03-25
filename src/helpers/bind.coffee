@@ -23,9 +23,6 @@ class Neck.Helper.bind extends Neck.Helper
           @$el.val value or ''
       @_updated = false
 
-    @on 'remove:before', -> 
-      @undelegateEvents()
-
   calculateValue: (s)->
     if s.match @NUMBER
       Number s.replace(',','.')
@@ -34,6 +31,9 @@ class Neck.Helper.bind extends Neck.Helper
 
   update: ->
     setTimeout =>
+      # Exit timeout when controller is already destroy
+      return unless @scope
+
       @_updated = true
       if @isCheckbox
         @scope._main = if @$el.is(':checked') then 1 else 0
