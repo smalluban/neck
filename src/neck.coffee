@@ -248,6 +248,15 @@ class Neck.Controller extends Backbone.View
     else
       @trigger "refresh:#{key}"
 
+  route: (controller, options = {yield: 'main'})->
+    unless target = @._yieldList[options.yield]
+      throw "No yield '#{options.yield}' for route in yields chain"
+   
+    target.append controller, options.params, options.refresh, options.replace
+
+  navigate: (url, params)->
+    Neck.Router.prototype.navigate url + (if params then '?' + $.param(params) else ''), trigger: true
+
 class Neck.Helper extends Neck.Controller
   parseSelf: false
 
