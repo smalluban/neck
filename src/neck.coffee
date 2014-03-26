@@ -254,8 +254,8 @@ class Neck.Controller extends Backbone.View
    
     target.append controller, options.params, options.refresh, options.replace
 
-  navigate: (url, params)->
-    Neck.Router.prototype.navigate url + (if params then '?' + $.param(params) else ''), trigger: true
+  navigate: (url, params, options = {trigger: true})->
+    Neck.Router.prototype.navigate url + (if params then '?' + $.param(params) else ''), options
 
 class Neck.Helper extends Neck.Controller
   parseSelf: false
@@ -280,6 +280,15 @@ class Neck.Router extends Backbone.Router
       throw "Neck.Router require connection with App Controller"
 
   route:(route, settings)->
+    # Mix values to proper structure
+    unless settings.yields
+      if typeof settings is 'object'
+        settings = yields: main: settings
+      else if typeof settings is 'string'
+        settings = yields: main: controller: settings
+      else
+        throw "Route structure has to be object or controller name"
+
     myCallback = (args...)=>
       query = {}
       args.pop() if typeof (query = _.last(args)) is 'object'
@@ -288,10 +297,11 @@ class Neck.Router extends Backbone.Router
         route.replace @PARAM_REGEXP, (all, name)->
           query[name] = param if param = args.shift()
 
-      for yieldName, options of (settings.yields or main: controller: settings.controller or settings)
-        throw "No '#{yieldName}' yield defined in App" unless @app._yieldList?[yieldName]
-
-        @app._yieldList[yieldName].append (options.controller or options), 
+      for yieldName, options of settings.yields
+        throw "No '#{yieldName}' yield defined in App" unless yield = @app._yieldList?[yieldName]
+        return yield.clear() if options is false
+        
+        yield.append (options.controller or options), 
           _.extend({}, options.params, query),
           options.refresh,
           options.replace
