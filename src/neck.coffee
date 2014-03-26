@@ -298,10 +298,10 @@ class Neck.Router extends Backbone.Router
           query[name] = param if param = args.shift()
 
       for yieldName, options of settings.yields
-        throw "No '#{yieldName}' yield defined in App" unless yield = @app._yieldList?[yieldName]
-        return yield.clear() if options is false
+        throw "No '#{yieldName}' yield defined in App" unless _yield = @app._yieldList?[yieldName]
+        return _yield.clear() if options is false
         
-        yield.append (options.controller or options), 
+        _yield.append (options.controller or options), 
           _.extend({}, options.params, query),
           options.refresh,
           options.replace
