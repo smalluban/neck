@@ -72,5 +72,6 @@ class Neck.Helper.yield extends Neck.Helper
     @_createController controllerPath, params , parent
 
   clear: ->
-    @_yieldChild.remove()
-    @_yieldChild = undefined
+    if @_yieldChild
+      @_yieldChild.remove()
+      @_yieldChild = undefined
