@@ -43,6 +43,7 @@ class Neck.Controller extends Backbone.View
     TWICE_SCOPE: /((window|scope)\.[^\ ]*\.)scope\./
     OBJECT: /^\{.+\}$/g
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
+    PROPERTY_SETTER: /^scope\.[a-zA-Z$_][^\ \(\)\{\}\:]*(\.[a-zA-Z$_][^\ \(\)\{\}\:]*)+\ *=[^=]/
 
   divWrapper: true
   template: false
@@ -185,7 +186,14 @@ class Neck.Controller extends Backbone.View
           undefined
     else if value.match @REGEXPS.OBJECT
       value = "(#{value})"
-    
+    else if value.match @REGEXPS.PROPERTY_SETTER
+      options.get = =>
+        try
+          eval value
+          @apply key
+        catch e
+          undefined
+
     Object.defineProperty @scope, key, options
 
     @scope._resolves[key] = []
