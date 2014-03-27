@@ -201,47 +201,52 @@ class Neck.Controller extends Backbone.View
       if @parent.scope._resolves[resolve]
         @scope._resolves[key] = _.union @scope._resolves[key], @parent.scope._resolves[resolve]
       else
-        @scope._resolves[key].push { controller: @parent, key: resolve }
+        controller = @
+        while controller = controller.parent
+          if controller.scope.hasOwnProperty(resolve)
+            @scope._resolves[key].push { controller: controller, key: resolve }
+        undefined
     
     # Clear when empty
     unless @scope._resolves[key].length
       @scope._resolves[key] = undefined
 
   _watch: (key, callback, context = @)->
-    if @scope.hasOwnProperty(key) or !@parent
+    if @scope.hasOwnProperty(key)
       if Object.getOwnPropertyDescriptor(@scope, key)?.get
         if @scope._resolves[key]
           for resolve in @scope._resolves[key]
             resolve.controller._watch resolve.key, callback, context
-          undefined
+          return
         else
-          context.listenTo @, "refresh:#{key}", callback
-      else
-        val = @scope[key]
-
-        if val instanceof Backbone.Model
-          @listenTo val, "sync", => @apply key
-
-        Object.defineProperty @scope, key, 
-          enumerable: true
-          get: -> val
-          set: (newVal)=>
-            if val instanceof Backbone.Model
-              @stopListening val
-            if newVal instanceof Backbone.Model  
-              @listenTo newVal, "sync", => @apply key
-              
-            val = newVal
-            @apply key
-      
-        context.listenTo @, "refresh:#{key}", callback
+          return context.listenTo @, "refresh:#{key}", callback
     else
       controller = @
       while controller = controller.parent
         if controller.scope.hasOwnProperty key
-          controller._watch key, callback, context
-          break
+          return controller._watch key, callback, context
       undefined
+
+    # Default behavior
+
+    val = @scope[key]
+
+    if val instanceof Backbone.Model
+      @listenTo val, "sync", => @apply key
+
+    Object.defineProperty @scope, key, 
+      enumerable: true
+      get: -> val
+      set: (newVal)=>
+        if val instanceof Backbone.Model
+          @stopListening val
+        if newVal instanceof Backbone.Model  
+          @listenTo newVal, "sync", => @apply key
+          
+        val = newVal
+        @apply key
+  
+    context.listenTo @, "refresh:#{key}", callback
 
   watch: (keys..., callback)->
     call = => callback.apply @, _.map keys, (k)=> @scope[k]
