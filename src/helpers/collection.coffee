@@ -79,6 +79,8 @@ class Neck.Helper.collection extends Neck.Helper
         undefined
 
   addItem: (model)=>
+    @$el.empty() unless @items.length
+
     @items.push item = new @itemController(
       template: @itemTemplate
       externalTemplate: @scope.collectionView
