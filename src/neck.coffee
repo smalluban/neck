@@ -251,10 +251,21 @@ class Neck.Controller extends Backbone.View
   
     context.listenTo @, "refresh:#{key}", callback
 
-  watch: (keys..., callback)->
-    call = => callback.apply @, _.map keys, (k)=> @scope[k]
+  _resolveValue: (model, propertyChain)->
+    try
+      eval "model." + propertyChain
+    catch
+      undefined
+
+  watch: (keys...)->
+    initCall = true
+    if typeof(callback = keys.pop()) is 'boolean'
+      initCall = callback
+      callback = keys.pop()
+
+    call = => callback.apply @, _.map keys, (k)=> @_resolveValue @scope, k
     @_watch key.split('.')[0], call for key in keys
-    call()
+    call() if initCall
 
   apply: (key)->
     if @scope._resolves[key]
