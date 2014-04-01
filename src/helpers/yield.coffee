@@ -27,8 +27,9 @@ class Neck.Helper.yield extends Neck.Helper
       @append @scope.yieldView, @scope.yieldParams
 
   _createController: (controllerPath, params, parent)->
-    Controller = Neck.DI.load(controllerPath, type: 'controller')
+    Controller = @injector.load(controllerPath, type: 'controller')
     controller = new Controller template: "#{controllerPath}", params: params, parent: if @scope.yieldInherit then @context
+    controller.injector = @context.injector # Set injector from parent view controller
     controller.scope._context = controller if @scope.yieldInherit
     
     # Inherit yields

@@ -45,7 +45,7 @@ class Neck.Helper.collection extends Neck.Helper
 
     if controller = @scope.collectionController
       if typeof controller is 'string'
-        @itemController = Neck.DI.load(controller, type: 'controller')
+        @itemController = @injector.load(controller, type: 'controller')
       else
         @itemController = controller
     

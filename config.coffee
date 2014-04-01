@@ -2,8 +2,7 @@ exports.config =
 
   modules:
     definition: false
-    wrapper: (path, data) ->
-        "(function() {#{data}})();\n\n"
+    wrapper: false
 
   paths:
     public: "lib/"
@@ -22,10 +21,17 @@ exports.config =
           'test/vendor/jquery-2.0.3.js'
           'test/vendor/mocha-1.14.0.js'
           'bower_components/underscore/underscore.js'
+          'src/wrappers/prefix.js'
           'src/neck.coffee'
+        ]
+        after: [
+          'src/wrappers/suffix.js'
         ]
 
     stylesheets:
       joinTo: 
         'test/style.css': /^test/
 
+  plugins:
+    javascript:
+      validate: false

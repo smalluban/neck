@@ -1,5 +1,3 @@
-window.Neck = Neck = {}
-
 # Add "ui-hide" class
 $('''
   <style media="screen">
@@ -11,7 +9,26 @@ Neck.Tools =
   dashToCamel: (str)-> str.replace /\W+(.)/g, (x, chr)-> chr.toUpperCase()
   camelToDash: (str)-> str.replace(/\W+/g, '-').replace(/([a-z\d])([A-Z])/g, '$1-$2')
 
-Neck.DI =
+# Dependency injectors container
+Neck.DI = {}
+
+# DI searching on global scope given variables
+Neck.DI.globals =
+  load: (route, options)-> 
+    try
+      if destiny = eval(route)
+        return destiny
+      else
+        if options.type isnt 'template'
+          return throw "No defined '#{route}' object in global scope"
+    catch
+      if options.type isnt 'template'
+        return throw "No defined '#{route}' object in global scope"
+
+    route
+
+# DI working with commonjs require module wrapper
+Neck.DI.commonjs =
   controllerPrefix: 'controllers'
   helperPrefix: 'helpers'
   templatePrefix: 'templates'
@@ -23,15 +40,8 @@ Neck.DI =
       try
         return require (if options.type then @[options.type + 'Prefix'] + "/" else '') + route
       catch
-        try
-          if destiny = eval(route)
-            return destiny
-          else
-            if options.type isnt 'template'
-              return throw "No defined '#{route}' object for Neck dependency injection"
-        catch
-          if options.type isnt 'template'
-            return throw "No defined '#{route}' object for Neck dependency injection"
+        if options.type isnt 'template'
+          return throw "No defined '#{route}' object for CommonJS dependency injection"
 
     route
 
@@ -49,6 +59,8 @@ class Neck.Controller extends Backbone.View
   template: false
   parseSelf: true
 
+  injector: Neck.DI.commonjs
+
   constructor: (opts)->
     super
 
@@ -60,6 +72,9 @@ class Neck.Controller extends Backbone.View
     if @parent
       @listenTo @parent, 'render:clear', @clear
       @listenTo @parent, 'remove:before', @remove
+
+      # Inherit injector
+      @injector = @parent.injector
       
     if opts.template and not @template
       @template = opts.template
@@ -93,7 +108,7 @@ class Neck.Controller extends Backbone.View
 
     if @template
       unless typeof @template is 'function'
-        if typeof (template = Neck.DI.load(@template, type: 'template')) is 'function'
+        if typeof (template = @injector.load(@template, type: 'template')) is 'function'
           template = template @scope
       else
         template = template @scope
@@ -115,7 +130,7 @@ class Neck.Controller extends Backbone.View
         if attribute.nodeName?.substr(0, 3) is "ui-"
           el or= $(node)
           name = Neck.Tools.dashToCamel attribute.nodeName.substr(3)
-          helper = new (Neck.Helper[name] or Neck.DI.load(name, type: 'helper'))(el: el, parent: @, mainAttr: attribute.value)
+          helper = new (Neck.Helper[name] or @injector.load(name, type: 'helper'))(el: el, parent: @, mainAttr: attribute.value)
           stop = true if helper.template isnt false
     
     @_parseNode child for child in node.childNodes unless stop or not node
