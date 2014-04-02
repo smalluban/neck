@@ -31,6 +31,10 @@ class Event
   template: false
   
   constructor: (options)->
+    # Anchor should have 'href' attribute
+    if options.el[0].tagName is 'A'
+      options.el.attr 'href', '#'
+
     options.el.on @eventType, (e)=>
       e.preventDefault()
       options.e = e
