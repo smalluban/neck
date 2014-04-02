@@ -221,7 +221,9 @@ class Neck.Controller extends Backbone.View
           while controller = controller.parent
             if controller.scope.hasOwnProperty(resolve)
               @scope._resolves[key].push { controller: controller, key: resolve }
-          undefined
+              break
+          unless @scope._resolves[key].length
+            @scope._resolves[key].push { controller: @parent, key: resolve }
         else
           @scope._resolves[key].push { controller: @parent, key: resolve }  
     
