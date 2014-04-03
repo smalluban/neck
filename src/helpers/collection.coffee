@@ -53,6 +53,7 @@ class Neck.Helper.collection extends Neck.Helper
     @items = []
     
     @watch '_main', (collection)->
+      return if collection is @collection
       @stopListening @collection if @collection
 
       if @collection = collection

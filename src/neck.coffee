@@ -46,15 +46,6 @@ Neck.DI.commonjs =
     route
 
 class Neck.Controller extends Backbone.View  
-  REGEXPS:
-    TEXTS: /\'[^\']+\'/g
-    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|window)($|\.|\ )/g
-    SCOPE_PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\(\)\{\}]*)/g
-    TWICE_SCOPE: /((window|scope)\.[^\ ]*\.)scope\./
-    OBJECT: /^\{.+\}$/g
-    ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
-    PROPERTY_SETTER: /^scope\.[a-zA-Z$_][^\ \(\)\{\}\:]*(\.[a-zA-Z$_][^\ \(\)\{\}\:]*)+\ *=[^=]/
-
   divWrapper: true
   template: false
   parseSelf: true
@@ -135,6 +126,102 @@ class Neck.Controller extends Backbone.View
     
     @_parseNode child for child in node.childNodes unless stop or not node
     undefined
+
+  _watch: (key, callback, context = @)->
+    if @scope.hasOwnProperty(key)
+      if Object.getOwnPropertyDescriptor(@scope, key)?.get
+        if @scope._resolves[key]
+          for resolve in @scope._resolves[key]
+            resolve.controller._watch resolve.key, callback, context
+          return
+        else
+          return context.listenTo @, "refresh:#{key}", callback
+    else
+      controller = @
+      while controller = controller.parent
+        if controller.scope.hasOwnProperty key
+          return controller._watch key, callback, context
+      undefined
+
+    # Default behavior
+
+    val = @scope[key]
+
+    if val instanceof Backbone.Model or val instanceof Backbone.Collection
+      @listenTo val, "sync", => @apply key
+
+    Object.defineProperty @scope, key, 
+      enumerable: true
+      get: -> val
+      set: (newVal)=>
+        if val instanceof Backbone.Model or val instanceof Backbone.Collection
+          @stopListening val
+        if newVal instanceof Backbone.Model or val instanceof Backbone.Collection  
+          @listenTo newVal, "sync", => @apply key
+          
+        val = newVal
+        @apply key
+  
+    context.listenTo @, "refresh:#{key}", callback
+
+  _resolveValue: (model, propertyChain)->
+    try
+      eval "model." + propertyChain
+    catch
+      undefined
+
+  watch: (keys...)->
+    initCall = true
+    if typeof(callback = keys.pop()) is 'boolean'
+      initCall = callback
+      callback = keys.pop()
+
+    call = => callback.apply @, _.map keys, (k)=> @_resolveValue @scope, k
+    @_watch key.split('.')[0], call for key in keys
+    call() if initCall
+
+  apply: (key)->
+    if @scope._resolves[key]
+      for resolve in @scope._resolves[key]
+        resolve.controller.trigger "refresh:#{resolve.key}"
+      undefined
+    else
+      controller = @
+      while controller = controller.parent
+        if controller.scope.hasOwnProperty(key)
+          return controller.trigger "refresh:#{key}"
+
+      @trigger "refresh:#{key}"
+
+  route: (controller, options = {yield: 'main'})->
+    unless target = @._yieldList[options.yield]
+      throw "No yield '#{options.yield}' for route in yields chain"
+   
+    target.append controller, options.params, options.refresh, options.replace
+
+  navigate: (url, params, options = {trigger: true})->
+    Neck.Router.prototype.navigate url + (if params then '?' + $.param(params) else ''), options
+
+class Neck.Helper extends Neck.Controller
+  REGEXPS:
+    TEXTS: /\'[^\']+\'/g
+    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|window)($|\.|\ )/g
+    SCOPE_PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\(\)\{\}]*)/g
+    TWICE_SCOPE: /((window|scope)\.[^\ ]*\.)scope\./
+    OBJECT: /^\{.+\}$/g
+    ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
+    PROPERTY_SETTER: /^scope\.[a-zA-Z$_][^\ \(\)\{\}\:]*(\.[a-zA-Z$_][^\ \(\)\{\}\:]*)+\ *=[^=]/
+  
+  parseSelf: false
+
+  constructor: (opts)->
+    super
+    @_setAccessor '_main', opts.mainAttr
+
+    if @attributes
+      for attr in @attributes
+        if value = @el.attributes[Neck.Tools.camelToDash(attr)]?.value
+          @_setAccessor attr, value
 
   _parseValue: (s)->
     s = s.trim()
@@ -230,89 +317,7 @@ class Neck.Controller extends Backbone.View
     # Clear when empty
     unless @scope._resolves[key].length
       @scope._resolves[key] = undefined
-
-  _watch: (key, callback, context = @)->
-    if @scope.hasOwnProperty(key)
-      if Object.getOwnPropertyDescriptor(@scope, key)?.get
-        if @scope._resolves[key]
-          for resolve in @scope._resolves[key]
-            resolve.controller._watch resolve.key, callback, context
-          return
-        else
-          return context.listenTo @, "refresh:#{key}", callback
-    else
-      controller = @
-      while controller = controller.parent
-        if controller.scope.hasOwnProperty key
-          return controller._watch key, callback, context
-      undefined
-
-    # Default behavior
-
-    val = @scope[key]
-
-    if val instanceof Backbone.Model
-      @listenTo val, "sync", => @apply key
-
-    Object.defineProperty @scope, key, 
-      enumerable: true
-      get: -> val
-      set: (newVal)=>
-        if val instanceof Backbone.Model
-          @stopListening val
-        if newVal instanceof Backbone.Model  
-          @listenTo newVal, "sync", => @apply key
-          
-        val = newVal
-        @apply key
-  
-    context.listenTo @, "refresh:#{key}", callback
-
-  _resolveValue: (model, propertyChain)->
-    try
-      eval "model." + propertyChain
-    catch
-      undefined
-
-  watch: (keys...)->
-    initCall = true
-    if typeof(callback = keys.pop()) is 'boolean'
-      initCall = callback
-      callback = keys.pop()
-
-    call = => callback.apply @, _.map keys, (k)=> @_resolveValue @scope, k
-    @_watch key.split('.')[0], call for key in keys
-    call() if initCall
-
-  apply: (key)->
-    if @scope._resolves[key]
-      for resolve in @scope._resolves[key]
-        resolve.controller.trigger "refresh:#{resolve.key}"
-      undefined
-    else
-      @trigger "refresh:#{key}"
-
-  route: (controller, options = {yield: 'main'})->
-    unless target = @._yieldList[options.yield]
-      throw "No yield '#{options.yield}' for route in yields chain"
-   
-    target.append controller, options.params, options.refresh, options.replace
-
-  navigate: (url, params, options = {trigger: true})->
-    Neck.Router.prototype.navigate url + (if params then '?' + $.param(params) else ''), options
-
-class Neck.Helper extends Neck.Controller
-  parseSelf: false
-
-  constructor: (opts)->
-    super
-    @_setAccessor '_main', opts.mainAttr
-
-    if @attributes
-      for attr in @attributes
-        if value = @el.attributes[Neck.Tools.camelToDash(attr)]?.value
-          @_setAccessor attr, value
-
+      
 class Neck.Router extends Backbone.Router
 
   PARAM_REGEXP: /\:(\w+)/gi
