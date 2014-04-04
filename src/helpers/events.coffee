@@ -33,7 +33,7 @@ class Event
   constructor: (options)->
     # Anchor should have 'href' attribute
     if options.el[0].tagName is 'A'
-      options.el.attr 'href', '#'
+      options.el.attr 'href', '#' unless options.el.attr 'href'
 
     options.el.on @eventType, (e)=>
       e.preventDefault()
