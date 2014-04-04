@@ -4,4 +4,4 @@ class Neck.Helper.value extends Neck.Helper
     super
 
     @watch '_main', (value)->
-      @$el.text value or ""
+      @$el.text if value is undefined then "" else value
