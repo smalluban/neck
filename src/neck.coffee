@@ -148,7 +148,7 @@ class Neck.Controller extends Backbone.View
     val = @scope[key]
 
     if val instanceof Backbone.Model or val instanceof Backbone.Collection
-      @listenTo val, "sync", => @apply key
+      @listenTo val, "sync change", => @apply key
 
     Object.defineProperty @scope, key, 
       enumerable: true
@@ -157,7 +157,7 @@ class Neck.Controller extends Backbone.View
         if val instanceof Backbone.Model or val instanceof Backbone.Collection
           @stopListening val
         if newVal instanceof Backbone.Model or val instanceof Backbone.Collection  
-          @listenTo newVal, "sync", => @apply key
+          @listenTo newVal, "sync change", => @apply key
           
         val = newVal
         @apply key
