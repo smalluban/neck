@@ -93,9 +93,12 @@ class Neck.Helper.collection extends Neck.Helper
     @$el.append item.render().$el
 
   removeItem: (model)=>
-    _.findWhere(@items, model: model).remove()
+    item = _.findWhere(@items, model: model)
+    @items.splice @items.indexOf(item), 1
+    item.remove()
+
     unless @collection?.length
-      @renderEmpty() 
+      @renderEmpty()
 
   sortItems: =>
     for model in @collection.models
