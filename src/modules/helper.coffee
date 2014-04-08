@@ -46,6 +46,7 @@ class Neck.Helper extends Neck.Controller
     [s, _.uniq(resolves), getSetter]
 
   _setAccessor: (key, value)->
+    strictValue = false
     [value, resolves, getSetter] = @_parseValue value
 
     _getter = new Function "__scope", "with (__scope) { return #{value}; };"
@@ -55,14 +56,21 @@ class Neck.Helper extends Neck.Controller
       enumerable: true
       get: => 
         try
+          return value if strictValue
           _return = _getter.call window, @parent.scope
           @apply key if getSetter
           _return
         catch e
-          console.warn "Evaluating '#{value}': #{e.message} "
+          # console.warn "Getting '#{value}': #{e.message}"
           undefined
       set: (newVal)=>
-        _return = _setter.call window, @parent.scope, newVal
+        try
+          _return = _setter.call window, @parent.scope, newVal
+        catch e
+          # console.warn "Setting '#{value}': #{e.message}"
+          strictValue = true
+          _return = value = newVal
+
         @apply key
         _return
 
