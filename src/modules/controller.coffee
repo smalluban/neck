@@ -120,16 +120,13 @@ class Neck.Controller extends Backbone.View
   _resolveValue: (model, propertyChain)->
     try
       eval "model." + propertyChain
-    catch
+    catch e
       undefined
 
-  watch: (keys...)->
-    initCall = true
-    if typeof(callback = keys.pop()) is 'boolean'
-      initCall = callback
-      callback = keys.pop()
-
+  watch: (keys, callback, initCall = true)->
+    keys = keys.split(' ')
     call = => callback.apply @, _.map keys, (k)=> @_resolveValue @scope, k
+
     @_watch key.split('.')[0], call for key in keys
     call() if initCall
 

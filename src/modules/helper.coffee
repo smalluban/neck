@@ -1,12 +1,9 @@
 class Neck.Helper extends Neck.Controller
   REGEXPS:
     TEXTS: /\'[^\']+\'/g
-    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|window)($|\.|\ )/g
-    SCOPE_PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\(\)\{\}]*)/g
-    TWICE_SCOPE: /((window|scope)\.[^\ ]*\.)scope\./
-    OBJECT: /^\{.+\}$/g
-    ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
-    PROPERTY_SETTER: /^scope\.[a-zA-Z$_][^\ \(\)\{\}\:]*(\.[a-zA-Z$_][^\ \(\)\{\}\:]*)+\ *=[^=]/
+    TEXTS_HASHED: /###/g
+    PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\(\)\{\}]*)/g
+    SETTER: /^[a-zA-Z$_][^\ \(\)\{\}\:]*(\.[a-zA-Z$_][^\ \(\)\{\}\:]*)+\ *=[^=]/
   
   parseSelf: false
 
@@ -23,6 +20,7 @@ class Neck.Helper extends Neck.Controller
     s = s.trim()
     texts = []
     resolves = []
+    getSetter = false
 
     # Replace texts for recognition
     s = s.replace @REGEXPS.TEXTS, (t)-> 
@@ -30,86 +28,61 @@ class Neck.Helper extends Neck.Controller
       "###"
 
     # Find scope properties
-    s = s.replace @REGEXPS.SCOPE_PROPERTIES, (t)=>
-      unless t.match @REGEXPS.RESERVED_KEYWORDS
-        unless t.substr(0, 1) is '@'
-          resolves.push t.split('.')[0]
-        else
-          t = '_context.' + t.substr(1)
-        "scope.#{t}"
+    s = s.replace @REGEXPS.PROPERTIES, (t)=>
+      unless t.substr(0, 1) is '@'
+        resolves.push t.split('.')[0]
       else
-        t
+        t = '_context.' + t.substr(1)
+      t
 
-    # Clear twice 'scope'
-    while s.match @REGEXPS.TWICE_SCOPE
-      s = s.replace @REGEXPS.TWICE_SCOPE, "$1"
+    # Check get setter
+    if s.match @REGEXPS.SETTER
+      getSetter = true
  
     # Unreplace texts
     if texts.length
-      s = s.replace(/###/g, ()-> texts.shift()) 
+      s = s.replace @REGEXPS.TEXTS_HASHED, -> texts.shift()
 
-    [s, _.uniq resolves]
+    [s, _.uniq(resolves), getSetter]
 
   _setAccessor: (key, value)->
-    cacheVal = ""
-    scope = @parent.scope
-    [value, resolves] = @_parseValue value
+    [value, resolves, getSetter] = @_parseValue value
 
-    options = 
+    _getter = new Function "__scope", "with (__scope) { return #{value}; };"
+    _setter = new Function "__scope, __newVal", "with (__scope) { return #{value} = __newVal; };"
+
+    Object.defineProperty @scope, key, 
       enumerable: true
-      get: -> 
+      get: => 
         try
-          eval value
+          _return = _getter.call window, @parent.scope
+          @apply key if getSetter
+          _return
         catch e
+          console.warn "Evaluating '#{value}': #{e.message} "
           undefined
       set: (newVal)=>
-        cacheVal = newVal
-        value = "cacheVal"
-        @apply key.split('.')[0]
-
-    if value.match @REGEXPS.ONLY_PROPERTY
-      options.set = (newVal)=>
-        model = value.split('.')
-        property = model.pop()
-        
-        # Create objects when they are undefined
-        obj = scope
-        for m in model.slice(1)
-          obj = obj[m] = {} unless obj[m]
-
-        try
-          (eval model.join('.'))[property] = newVal
-          @apply key if model.length > 1
-        catch e
-          undefined
-    else if value.match @REGEXPS.OBJECT
-      value = "(#{value})"
-    else if value.match @REGEXPS.PROPERTY_SETTER
-      options.get = =>
-        try
-          eval value
-          @apply key
-        catch e
-          undefined
-
-    Object.defineProperty @scope, key, options
+        _return = _setter.call window, @parent.scope, newVal
+        @apply key
+        _return
 
     @scope._resolves[key] = []
     for resolve in resolves
-      if @parent.scope._resolves[resolve]
-        @scope._resolves[key] = _.union @scope._resolves[key], @parent.scope._resolves[resolve]
-      else
-        if @parent.parent
-          controller = @
-          while controller = controller.parent
-            if controller.scope.hasOwnProperty(resolve)
-              @scope._resolves[key].push { controller: controller, key: resolve }
-              break
-          unless @scope._resolves[key].length
-            @scope._resolves[key].push { controller: @parent, key: resolve }
-        else
-          @scope._resolves[key].push { controller: @parent, key: resolve }  
-    
+      controller = @
+      while controller = controller.parent
+        if controller.scope._resolves[resolve]
+          @scope._resolves[key] = _.union @scope._resolves[key], @parent.scope._resolves[resolve]
+          break
+        if controller.scope.hasOwnProperty(resolve)
+          @_addResolver key, controller, resolve
+          break
+        else unless controller.parent
+          @_addResolver key, controller, resolve 
+          
     # Clear when empty
     unless @scope._resolves[key].length
       @scope._resolves[key] = undefined
+
+  _addResolver: (key, controller, resolve)->
+    @scope._resolves[key].push controller: controller, key: resolve
+    controller.scope[resolve] or= undefined # Predefined property if is not set already
