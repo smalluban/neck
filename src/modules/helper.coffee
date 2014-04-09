@@ -4,6 +4,7 @@ class Neck.Helper extends Neck.Controller
     TEXTS_HASHED: /###/g
     FUNCTION: /\(/
     PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\{\}\)]*)/g
+    ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
     RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|window)($|\.|\ )/g
   
   parseSelf: false
@@ -47,9 +48,8 @@ class Neck.Helper extends Neck.Controller
     [value, resolves] = @_parseValue value
 
     _getter = new Function "__scope", "with (__scope) { __return = #{value} } return __return"
-    _setter = new Function "__scope, __newVal", "with (__scope) { return #{value} = __newVal; };"
-
-    Object.defineProperty @scope, key, 
+ 
+    options = 
       enumerable: true
       get: => 
         try
@@ -58,16 +58,21 @@ class Neck.Helper extends Neck.Controller
         catch e
           # console.warn "Getting '#{value}': #{e.message}"
           undefined
-      set: (newVal)=>
-        try
-          _return = _setter.call window, @parent.scope, newVal
-        catch e
-          # console.warn "Setting '#{value}': #{e.message}"
-          strictValue = true
-          _return = value = newVal
 
+    if value.match @REGEXPS.ONLY_PROPERTY and !value.match @REGEXPS.RESERVED_KEYWORDS
+      _setter = new Function "__scope, __newVal", "with (__scope) { return #{value} = __newVal; };"
+      options.set = (newVal)=>
+        _return = _setter.call window, @parent.scope, newVal
         @apply key
         _return
+    else
+      options.set = (newVal)=>
+        strictValue = true
+        _return = value = newVal
+        @apply key
+        _return
+
+    Object.defineProperty @scope, key, options
 
     @scope._resolves[key] = []
     for resolve in resolves

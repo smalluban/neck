@@ -12,7 +12,7 @@ exports.config =
     public: "lib/"
     watched: ['src', 'wrappers', 'test', 'vendor']
 
-  sourceMaps: true
+  sourceMaps: false
 
   files:
     javascripts:
