@@ -80,7 +80,7 @@ class Neck.Helper extends Neck.Controller
           @_addResolver key, controller, resolve
           break
         else unless controller.parent
-          @_addResolver key, controller, resolve 
+          @_addResolver key, @parent, resolve 
           
     # Clear when empty
     unless @scope._resolves[key].length
