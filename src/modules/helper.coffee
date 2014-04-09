@@ -59,7 +59,7 @@ class Neck.Helper extends Neck.Controller
           # console.warn "Getting '#{value}': #{e.message}"
           undefined
 
-    if value.match @REGEXPS.ONLY_PROPERTY and !value.match @REGEXPS.RESERVED_KEYWORDS
+    if value.match(@REGEXPS.ONLY_PROPERTY) and !value.match(@REGEXPS.RESERVED_KEYWORDS)
       _setter = new Function "__scope, __newVal", "with (__scope) { return #{value} = __newVal; };"
       options.set = (newVal)=>
         _return = _setter.call window, @parent.scope, newVal
