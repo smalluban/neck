@@ -2,8 +2,9 @@ class Neck.Helper extends Neck.Controller
   REGEXPS:
     TEXTS: /\'[^\']+\'/g
     TEXTS_HASHED: /###/g
-    PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\(\)\{\}]*)/g
-    SETTER: /^[a-zA-Z$_][^\ \(\)\{\}\:]*(\.[a-zA-Z$_][^\ \(\)\{\}\:]*)+\ *=[^=]/
+    FUNCTION: /\(/
+    PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\{\}\)]*)/g
+    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|window)($|\.|\ )/g
   
   parseSelf: false
 
@@ -20,7 +21,6 @@ class Neck.Helper extends Neck.Controller
     s = s.trim()
     texts = []
     resolves = []
-    getSetter = false
 
     # Replace texts for recognition
     s = s.replace @REGEXPS.TEXTS, (t)-> 
@@ -29,27 +29,24 @@ class Neck.Helper extends Neck.Controller
 
     # Find scope properties
     s = s.replace @REGEXPS.PROPERTIES, (t)=>
-      unless t.substr(0, 1) is '@'
-        resolves.push t.split('.')[0]
+      unless t.substr(0, 1) is '@' 
+        unless t.match @REGEXPS.RESERVED_KEYWORDS
+          resolves.push if t.match @REGEXPS.FUNCTION then t.split('.')[0] else t
       else
         t = '_context.' + t.substr(1)
       t
-
-    # Check get setter
-    if s.match @REGEXPS.SETTER
-      getSetter = true
  
     # Unreplace texts
     if texts.length
       s = s.replace @REGEXPS.TEXTS_HASHED, -> texts.shift()
 
-    [s, _.uniq(resolves), getSetter]
+    [s, _.uniq(resolves)]
 
   _setAccessor: (key, value)->
     strictValue = false
-    [value, resolves, getSetter] = @_parseValue value
+    [value, resolves] = @_parseValue value
 
-    _getter = new Function "__scope", "with (__scope) { return #{value}; };"
+    _getter = new Function "__scope", "with (__scope) { __return = #{value} } return __return"
     _setter = new Function "__scope, __newVal", "with (__scope) { return #{value} = __newVal; };"
 
     Object.defineProperty @scope, key, 
@@ -57,9 +54,7 @@ class Neck.Helper extends Neck.Controller
       get: => 
         try
           return value if strictValue
-          _return = _getter.call window, @parent.scope
-          @apply key if getSetter
-          _return
+          _getter.call window, @parent.scope
         catch e
           # console.warn "Getting '#{value}': #{e.message}"
           undefined
@@ -81,7 +76,7 @@ class Neck.Helper extends Neck.Controller
         if controller.scope._resolves[resolve]
           @scope._resolves[key] = _.union @scope._resolves[key], @parent.scope._resolves[resolve]
           break
-        if controller.scope.hasOwnProperty(resolve)
+        if controller.scope.hasOwnProperty(resolve.split('.')[0])
           @_addResolver key, controller, resolve
           break
         else unless controller.parent
@@ -93,4 +88,11 @@ class Neck.Helper extends Neck.Controller
 
   _addResolver: (key, controller, resolve)->
     @scope._resolves[key].push controller: controller, key: resolve
-    controller.scope[resolve] or= undefined # Predefined property if is not set already
+
+    chain = resolve.split('.')
+    param = chain.pop()
+    obj = controller.scope
+    while objName = chain.shift()
+      obj[objName] = {} unless obj[objName]
+      obj = obj[objName]
+    obj[param] or= undefined # Predefined property if is not set already

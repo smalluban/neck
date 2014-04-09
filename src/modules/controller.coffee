@@ -81,49 +81,49 @@ class Neck.Controller extends Backbone.View
     undefined
 
   _watch: (key, callback, context = @)->
-    if @scope.hasOwnProperty(key)
-      if Object.getOwnPropertyDescriptor(@scope, key)?.get
-        if @scope._resolves[key]
-          for resolve in @scope._resolves[key]
-            resolve.controller._watch resolve.key, callback, context
-          return
-        else
-          return context.listenTo @, "refresh:#{key}", callback
+    shortKey = key.split('.')[0]
+
+    if @scope._resolves[key]
+      for resolve in @scope._resolves[key]
+        resolve.controller._watch resolve.key, callback, context
+      return
     else
-      controller = @
-      while controller = controller.parent
-        if controller.scope.hasOwnProperty key
-          return controller._watch key, callback, context
-      undefined
+      if @scope.hasOwnProperty(shortKey)
+        if Object.getOwnPropertyDescriptor(@scope, shortKey)?.get
+          return context.listenTo @, "refresh:#{key}", callback
+      else
+        controller = @
+        while controller = controller.parent
+          if controller.scope.hasOwnProperty shortKey
+            return controller._watch key, callback, context
+        undefined
 
-    # Default behavior
-
-    val = @scope[key]
+    # Create get/set property for shortKey
+    val = @scope[shortKey]
 
     if val instanceof Backbone.Model or val instanceof Backbone.Collection
-      @listenTo val, "change", => @apply key
+      @listenTo val, "change", => @apply shortKey
 
-    Object.defineProperty @scope, key, 
+    Object.defineProperty @scope, shortKey, 
       enumerable: true
       get: -> val
       set: (newVal)=>
         if val instanceof Backbone.Model or val instanceof Backbone.Collection
           @stopListening val
         if newVal instanceof Backbone.Model or val instanceof Backbone.Collection  
-          @listenTo newVal, "change", => @apply key
+          @listenTo newVal, "change", => @apply shortKey
           
         val = newVal
-        @apply key
+        @apply shortKey
   
     context.listenTo @, "refresh:#{key}", callback
 
   watch: (keys, callback, initCall = true)->
     keys = keys.split(' ')
-    _resolveValue = 
     call = => callback.apply @, _.map keys, (k)=> 
       (new Function("__scope", "try { with (__scope) { return #{k}; } } catch(e) { return undefined; }"))(@scope, k)
 
-    @_watch key.split('.')[0], call for key in keys
+    @_watch key, call for key in keys
     call() if initCall
 
   apply: (key)->

@@ -24,8 +24,32 @@ class EventHelper extends Neck.Helper
     if typeof @scope._main is 'function'
       @scope._main.call @scope._context, opts.e
 
+    @apply '_main'
+
     @off()
     @stopListening()
+
+  _resolveKey: (scope, keyChain)->
+    keys = keyChain.split('.')
+    property = keys.pop()
+
+    while key = keys.shift()
+      scope = scope[key]
+
+    [scope, property]
+
+  apply: (key)->
+    if @scope?._resolves[key]
+      newResolves = []
+
+      # Check if key resolvers are 'self' appliers
+      for resolve, index in @scope._resolves[key]
+        [obj, key] = @_resolveKey resolve.controller.scope, resolve.key
+        unless Object.getOwnPropertyDescriptor(obj, key)?.get
+          newResolves.push resolve
+
+      @scope._resolves[key] = if newResolves.length then newResolves else undefined
+      super
 
 class Event
   template: false
