@@ -47,14 +47,15 @@ class Neck.Helper.yield extends Neck.Helper
 
   append: (controllerPath, params, refresh = false, replace = @replace)->
     if replace and @_yieldChild
-      if controllerPath is @_yieldChild._yieldPath and not refresh
-        @_yieldChild._yieldChild?.remove()
-      else
-        unless @_yieldChild._events["render:refresh"]
+      if controllerPath is @_yieldChild._yieldPath 
+        if @_yieldChild._events["render:refresh"] or not refresh
+          @_yieldChild._yieldChild?.remove()
+        else
           @_yieldChild.remove()
           @_yieldChild = undefined
-        else
-          @_yieldChild._yieldChild?.remove()
+      else
+        @_yieldChild.remove()
+        @_yieldChild = undefined
 
     # Check if controller is already in yield
     parent = @
