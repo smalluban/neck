@@ -50,8 +50,11 @@ class Neck.Helper.yield extends Neck.Helper
       if controllerPath is @_yieldChild._yieldPath and not refresh
         @_yieldChild._yieldChild?.remove()
       else
-        @_yieldChild?.remove()
-        @_yieldChild = undefined
+        unless @_yieldChild._events["render:refresh"]
+          @_yieldChild.remove()
+          @_yieldChild = undefined
+        else
+          @_yieldChild._yieldChild?.remove()
 
     # Check if controller is already in yield
     parent = @
@@ -60,10 +63,11 @@ class Neck.Helper.yield extends Neck.Helper
     while parent._yieldChild
       child = parent._yieldChild
       if child._yieldPath is controllerPath
-        if refresh
+        if refresh and not child._events["render:refresh"]
           child.remove()
           break
         else
+          child.trigger "render:refresh"
           child._yieldChild?.remove()
           child._yieldChild = undefined
           return child
