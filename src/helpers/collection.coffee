@@ -65,7 +65,7 @@ class Neck.Helper.collection extends Neck.Helper
       @resetItems()
 
     @watch 'collectionSort', (sort)->
-      if sort
+      if sort and @collection
         @collection.comparator = sort
         @collection.sort()
 
