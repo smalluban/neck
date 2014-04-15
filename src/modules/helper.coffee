@@ -32,7 +32,9 @@ class Neck.Helper extends Neck.Controller
     s = s.replace @REGEXPS.PROPERTIES, (t)=>
       unless (sub = t.substr(0, 1)) is '@' 
         unless sub is '.' or t.match(@REGEXPS.RESERVED_KEYWORDS)
-          resolves.push if t.match @REGEXPS.FUNCTION then t.split('.')[0] else t
+          split = t.split('.')
+          split.pop() if split.length > 1
+          resolves.push if t.match @REGEXPS.FUNCTION then split[0] else split.join('.')
       else
         t = '_context.' + t.substr(1)
       t
