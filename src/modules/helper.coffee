@@ -3,9 +3,9 @@ class Neck.Helper extends Neck.Controller
     TEXTS: /\'[^\']+\'/g
     TEXTS_HASHED: /###/g
     FUNCTION: /\(/
-    PROPERTIES: /([a-zA-Z$_\@][^\ \[\]\:\{\}\)]*)/g
+    PROPERTIES: /\.?([a-zA-Z$_\@][^\ \[\]\:\{\}\(\)]*\(*)/g
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
-    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|window)($|\.|\ )/g
+    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|this)($|\.|\ )/g
   
   parseSelf: false
 
@@ -30,8 +30,8 @@ class Neck.Helper extends Neck.Controller
 
     # Find scope properties
     s = s.replace @REGEXPS.PROPERTIES, (t)=>
-      unless t.substr(0, 1) is '@' 
-        unless t.match @REGEXPS.RESERVED_KEYWORDS
+      unless (sub = t.substr(0, 1)) is '@' 
+        unless sub is '.' or t.match(@REGEXPS.RESERVED_KEYWORDS)
           resolves.push if t.match @REGEXPS.FUNCTION then t.split('.')[0] else t
       else
         t = '_context.' + t.substr(1)
