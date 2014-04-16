@@ -32,9 +32,6 @@ class Neck.Helper.list extends Neck.Helper
   constructor: ->
     super
 
-    unless (@scope._main is undefined) or @scope._main instanceof Array
-      throw "Given object has to be instance of Array"
-
     @itemTemplate = @template
     @itemTemplate = @scope.listView if @scope.listView
     @template = @scope.listEmpty
@@ -48,15 +45,16 @@ class Neck.Helper.list extends Neck.Helper
     @itemName or= 'item'
     @items = []
 
-    @watch '_main', (@list)->
-      if @list
+    @watch '_main', (list)->
+      return unless list instanceof Array
+      if @list = list
         @resetItems()
 
         @apply 'listSort' if @scope.listSort 
         @apply 'listFilter' if @scope.listFilter
 
     @watch 'listSort', (sort)->
-      if sort
+      if sort and @list
         @list = _.sortBy @list, (i)-> sort(i)
         for item in @list
           _.findWhere(@items, item: item).$el.appendTo @$el

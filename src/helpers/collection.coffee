@@ -36,9 +36,6 @@ class Neck.Helper.collection extends Neck.Helper
   constructor: ->
     super
 
-    unless (@scope._main is undefined) or @scope._main instanceof Backbone.Collection
-      throw "Given object has to be instance of Backbone.Collection"
-
     @itemTemplate = @template
     @itemTemplate = @scope.collectionView if @scope.collectionView
     @template = @scope.collectionEmpty
@@ -53,7 +50,7 @@ class Neck.Helper.collection extends Neck.Helper
     @items = []
     
     @watch '_main', (collection)->
-      return if collection is @collection
+      return if collection is @collection or not (collection instanceof Backbone.Collection)
       @stopListening @collection if @collection
 
       if @collection = collection
