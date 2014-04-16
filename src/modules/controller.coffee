@@ -90,6 +90,7 @@ class Neck.Controller extends Backbone.View
     else
       if @scope.hasOwnProperty(shortKey)
         if Object.getOwnPropertyDescriptor(@scope, shortKey)?.get
+          context.listenTo @, "refresh:#{shortKey}", callback unless shortKey is key
           return context.listenTo @, "refresh:#{key}", callback
       else
         controller = @
@@ -115,7 +116,8 @@ class Neck.Controller extends Backbone.View
           
         val = newVal
         @apply shortKey
-  
+    
+    context.listenTo @, "refresh:#{shortKey}", callback unless shortKey is key
     context.listenTo @, "refresh:#{key}", callback
 
   watch: (keys, callback, initCall = true)->
