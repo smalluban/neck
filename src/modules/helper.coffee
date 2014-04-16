@@ -47,7 +47,7 @@ class Neck.Helper extends Neck.Controller
     strictValue = false
     [value, resolves] = @_parseValue value
 
-    _getter = new Function "__scope", "with (__scope) { __return = #{value} } return __return"
+    _getter = new Function "__scope", "with (__scope) { __return = #{value or undefined} } return __return"
  
     options = 
       enumerable: true
