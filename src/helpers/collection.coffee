@@ -48,18 +48,6 @@ class Neck.Helper.collection extends Neck.Helper
     
     @scope.collectionItem or= 'item'
     @items = []
-    
-    @watch '_main', (collection)->
-      return if collection is @collection or not (collection instanceof Backbone.Collection)
-      @stopListening @collection if @collection
-
-      if @collection = collection
-        @listenTo @collection, "add", @addItem
-        @listenTo @collection, "remove", @removeItem
-        @listenTo @collection, "sort", @sortItems
-        @listenTo @collection, "reset", @resetItems
-
-      @resetItems()
 
     @watch 'collectionSort', (sort)->
       if sort and @collection
@@ -75,6 +63,21 @@ class Neck.Helper.collection extends Neck.Helper
           else
             item.$el.addClass 'ui-hide'
         undefined
+    
+    @watch '_main', (collection)->
+      return if collection is @collection or not (collection instanceof Backbone.Collection)
+      @stopListening @collection if @collection
+
+      if @collection = collection
+        @apply 'collectionSort'
+        @apply 'collectionFilter'
+
+        @listenTo @collection, "add", @addItem
+        @listenTo @collection, "remove", @removeItem
+        @listenTo @collection, "sort", @sortItems
+        @listenTo @collection, "reset", @resetItems
+
+      @resetItems()
 
   addItem: (model)=>
     @$el.empty() unless @items.length
