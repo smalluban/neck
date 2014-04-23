@@ -60,10 +60,11 @@ class Neck.Helper extends Neck.Controller
           undefined
 
     if value.match(@REGEXPS.ONLY_PROPERTY) and !value.match(@REGEXPS.RESERVED_KEYWORDS)
+      shortValueKey = value.split('.')[0]
       _setter = new Function "__scope, __newVal", "with (__scope) { return #{value} = __newVal; };"
       options.set = (newVal)=>
         _return = _setter.call window, @parent.scope, newVal
-        @apply key
+        @parent.apply shortValueKey if shortValueKey isnt value
         _return
     else
       options.set = (newVal)=>
