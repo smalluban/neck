@@ -1,4 +1,7 @@
 class Neck.Helper.bind extends Neck.Helper
+  attributes: [
+    'bindProperty'
+  ]
 
   NUMBER: /^[0-9]+((\.|\,)?[0-9]+)*$/
 
@@ -15,12 +18,16 @@ class Neck.Helper.bind extends Neck.Helper
     if @$el.is(':checkbox')
       @isCheckbox = true
 
-    @watch '_main', (value)->
+    @watch '_main', ->
+      if @scope._main instanceof Backbone.Model 
+        throw 'Backbone.Model property required' unless @scope.bindProperty
+        throw 'Property has to be a string' unless typeof @scope.bindProperty is 'string'
+
       unless @_updated
         if @isCheckbox
-          @$el.prop 'checked', value
+          @$el.prop 'checked', @getValue()
         else
-          @$el.val value or ''
+          @$el.val @getValue() or ''
       @_updated = false
 
   calculateValue: (s)->
@@ -34,8 +41,21 @@ class Neck.Helper.bind extends Neck.Helper
       # Exit timeout when controller is already destroy
       return unless @scope
 
-      @_updated = true
       if @isCheckbox
-        @scope._main = if @$el.is(':checked') then 1 else 0
+        @setValue if @$el.is(':checked') then 1 else 0
       else
-        @scope._main = @calculateValue @$el.val()
+        @setValue @calculateValue @$el.val()
+
+  getValue: ->
+    if @scope._main instanceof Backbone.Model
+      @scope._main.get(@scope.bindProperty)
+    else
+      @scope._main
+
+  setValue: (value)->
+    @_updated = true
+    
+    if @scope._main instanceof Backbone.Model
+      @scope._main.set @scope.bindProperty, value
+    else
+      @scope._main = value 
