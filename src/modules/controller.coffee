@@ -142,8 +142,8 @@ class Neck.Controller extends Backbone.View
       @trigger "refresh:#{key}"
 
   route: (controller, options = {yield: 'main'})->
-    unless target = @._yieldList[options.yield]
-      throw "No yield '#{options.yield}' for route in yields chain"
+    throw "No yields list. You may call method from controller custructor?" unless @._yieldList
+    throw "No yield '#{options.yield}' for route in yields chain" unless target = @._yieldList[options.yield]
    
     target.append controller, options.params, options.refresh, options.replace
 
