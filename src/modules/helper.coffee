@@ -101,4 +101,5 @@ class Neck.Helper extends Neck.Controller
     while objName = chain.shift()
       obj[objName] = {} unless obj[objName]
       obj = obj[objName]
-    obj[param] or= undefined # Predefined property if is not set already
+    unless obj.hasOwnProperty param
+      obj[param] or= undefined # Predefined property if is not set already
