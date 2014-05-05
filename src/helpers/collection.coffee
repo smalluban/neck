@@ -56,13 +56,22 @@ class Neck.Helper.collection extends Neck.Helper
 
     @watch 'collectionFilter', (filter)->
       if filter or filter is ""
-        filter = new RegExp filter, "gi"
-        for item in @items
-          if (item.model + "").match filter
-            item.$el.removeClass 'ui-hide'
-          else
-            item.$el.addClass 'ui-hide'
-        undefined
+        if typeof filter is 'string'
+          filter = new RegExp filter, "gi"
+          for item in @items
+            if (item.model + "").match filter
+              item.$el.removeClass 'ui-hide'
+            else
+              item.$el.addClass 'ui-hide'
+          undefined
+        else if typeof filter is 'function'
+          for item in @items
+            console.log item.model
+            if filter(item.model)
+              item.$el.removeClass 'ui-hide'
+            else
+              item.$el.addClass 'ui-hide'
+          undefined
     
     @watch '_main', (collection)->
       return if collection is @collection or not (collection instanceof Backbone.Collection)
