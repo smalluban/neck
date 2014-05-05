@@ -6,6 +6,6 @@ $ ->
     Controller = injector.load(name, type: 'controller')
 
     el.removeAttr 'ui-neck'
-    controller = new Controller(el: el)
+    controller = new Controller(el: el, template: name)
     controller.injector = injector
     controller.render()
