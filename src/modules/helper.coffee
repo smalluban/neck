@@ -3,7 +3,7 @@ class Neck.Helper extends Neck.Controller
     TEXTS: /\'[^\']+\'/g
     TEXTS_HASHED: /###/g
     FUNCTION: /\(/
-    PROPERTIES: /\.?([a-zA-Z$_\@][^\ \[\]\:\{\}\(\)]*\(*)/g
+    PROPERTIES: /\.?([a-zA-Z$_\@][^\,\ \[\]\:\{\}\(\)]*\(*)/g
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
     RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|this)($|\.|\ )/g
   

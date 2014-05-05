@@ -102,8 +102,10 @@ class Neck.Controller extends Backbone.View
     # Create get/set property for shortKey
     val = @scope[shortKey]
 
-    if val instanceof Backbone.Model or val instanceof Backbone.Collection
+    if val instanceof Backbone.Model
       @listenTo val, "change", => @apply shortKey
+    else if val instanceof Backbone.Collection
+      @listenTo val, "add remove change", => @apply shortKey
 
     Object.defineProperty @scope, shortKey, 
       enumerable: true
@@ -111,8 +113,10 @@ class Neck.Controller extends Backbone.View
       set: (newVal)=>
         if val instanceof Backbone.Model or val instanceof Backbone.Collection
           @stopListening val
-        if newVal instanceof Backbone.Model or val instanceof Backbone.Collection  
+        if newVal instanceof Backbone.Model
           @listenTo newVal, "change", => @apply shortKey
+        else if val instanceof Backbone.Collection  
+          @listenTo newVal, "add remove change", => @apply shortKey
           
         val = newVal
         @apply shortKey

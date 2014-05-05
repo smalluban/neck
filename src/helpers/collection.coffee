@@ -66,7 +66,6 @@ class Neck.Helper.collection extends Neck.Helper
           undefined
         else if typeof filter is 'function'
           for item in @items
-            console.log item.model
             if filter(item.model)
               item.$el.removeClass 'ui-hide'
             else
