@@ -48,8 +48,9 @@ class EventHelper extends Neck.Helper
         unless Object.getOwnPropertyDescriptor(obj, key)?.get
           newResolves.push resolve
 
-      @scope._resolves[key] = if newResolves.length then newResolves else undefined
-      super
+      if newResolves.length
+        @scope._resolves[key] = newResolves
+        super
 
 class Event
   template: false
