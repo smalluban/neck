@@ -55,7 +55,7 @@ class Neck.Controller extends Backbone.View
         if typeof (template = @injector.load(@template, type: 'template')) is 'function'
           template = template @scope
       else
-        template = template @scope
+        template = @template @scope
           
       if @divWrapper
         @$el.html template
