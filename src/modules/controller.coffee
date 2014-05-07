@@ -5,11 +5,11 @@ class Neck.Controller extends Backbone.View
 
   injector: Neck.DI.commonjs
 
-  constructor: (opts)->
+  constructor: (opts = {})->
     super
 
     # Create scope inherit or new
-    scope = if @parent = opts?.parent then Object.create(@parent.scope) else _context: @
+    scope = if @parent = opts.parent then Object.create(@parent.scope) else _context: @
     @scope = _.extend scope, @scope, _resolves: {}
 
     # Listen to parent events
