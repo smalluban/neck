@@ -6,7 +6,4 @@ class Neck.Helper.show extends Neck.Helper
     @$el.addClass 'ui-hide'
 
     @watch '_main', (value)->
-      if value
-        @$el.removeClass 'ui-hide'
-      else
-        @$el.addClass 'ui-hide'
+      @$el.toggleClass 'ui-hide', !value
