@@ -119,3 +119,72 @@ describe 'Controller', ->
     assert.ok spy.calledTwice
     assert.equal spy.args[0][0].outerHTML, "<p>This is text 1</p>"
     assert.equal spy.args[1][0].outerHTML, "<p>This is text 2</p>"
+
+  # Scope tests
+
+  it "should create independent scope with _context set to self when no parent is set", ->
+    controller = new Neck.Controller()
+    assert.equal controller.scope._context, controller
+
+  it "should set scope properties from prototype", ->
+    class Controller extends Neck.Controller
+      scope:
+        one: 1
+        two: 'Some text'
+
+    # Simple controller
+    controller = new Controller()
+
+    assert.ok controller.scope.hasOwnProperty 'one'
+    assert.equal controller.scope.one, 1
+
+    assert.ok controller.scope.hasOwnProperty 'two'
+    assert.equal controller.scope.two, 'Some text'
+
+  it "should inherit scope properites from 'parent' controller scope", ->
+    class Controller extends Neck.Controller
+      scope: 
+        one: 1
+        two: some: 'text'
+
+    controller = new Controller() 
+
+    # Child controller with 'parent' setted, will inherit properites
+    childController = new Neck.Controller parent: controller
+    assert.notOk childController.scope.hasOwnProperty 'one'
+    assert.notOk childController.scope.hasOwnProperty 'two'
+    assert.equal childController.scope.one, 1
+    assert.equal childController.scope.two.some, 'text'
+
+    # Changing value of children scope property (not for objects, only String, Number, Boolean)
+    # DOESN't change inherit scope value when they are NOT SETTER/GETTER properites
+    childController.scope.one = true
+    childController.scope.two = newSome: 'text two'
+    assert.equal controller.scope.one, 1
+    assert.equal controller.scope.two.some, 'text'
+
+    # Now tricky part, watching proccess changes properites to SETTER/GETTER
+    # and then inherited properites are changing it's parent
+
+    # Create new instance of Neck.Controller 
+    childController = new Neck.Controller parent: controller
+    # Trigger watching proccess
+    controller.watch 'one', ->
+
+    # Now 'one' property of controller is setter/getter
+    # So changind 'one' property of childController will change 'one' property of controller
+    # Hint: setter/getter properties are working as objects
+    childController.scope.one = true
+    assert.equal controller.scope.one, true
+
+  it "should set scope '_resolves' self own property", ->
+    controller = new Neck.Controller()
+    assert.isObject controller.scope._resolves
+
+    # Child controller (with parent) should have '_resolves' own property
+    # It's important because this property can't be inherited from parent
+    # All controller scopes has own '_resolves' property
+    childController = new Neck.Controller parent: controller
+    assert.isObject childController.scope._resolves
+    assert.notEqual controller.scope._resolves, childController.scope._resolves
+
