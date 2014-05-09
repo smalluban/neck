@@ -9,5 +9,5 @@ class Neck.Helper.class extends Neck.Helper
     @listenToOnce @parent, 'render:after', ->
       @watch '_main', (main)->
         for key, value of main
-          @$el.toggleClass key, value
+          @$el.toggleClass key, if value then true else false
         undefined
