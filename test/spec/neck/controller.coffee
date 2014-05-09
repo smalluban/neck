@@ -86,6 +86,12 @@ describe 'Controller', ->
 
     assert.equal controller.el.outerHTML, "<ul><li>This is text</li></ul>"
 
+  it "should use template from contrcutor options when set", ->
+    controller = new Neck.Controller el: container, template: "<p>Some text</p>"
+    controller.render()
+    assert.equal controller.template, "<p>Some text</p>"
+    assert.equal controller.el.outerHTML, "<div><p>Some text</p></div>"
+
   # 'parseSelf' property tests
 
   # Set to true will trigger parsing proccess within root node, false set to
@@ -188,3 +194,28 @@ describe 'Controller', ->
     assert.isObject childController.scope._resolves
     assert.notEqual controller.scope._resolves, childController.scope._resolves
 
+  # Parsing template tests
+
+  it "should iterate through template and initialize helpers", =>
+    Neck.Helper['firstHelper'] = Neck.Helper['secondHelper'] = class Helper extends Neck.Helper
+      check: ->
+
+      constructor: ->
+        super
+        @check(arguments)
+
+    helperSpy = sinon.spy Helper.prototype, 'check'
+
+    class Controller extends Neck.Controller
+      template: 
+        '''
+          <div ui-first-helper="test">
+            <p ui-second-helper="test"></p>
+          </div>
+        '''
+
+    controller = new Controller().render()
+    assert.ok helperSpy.calledTwice
+
+    delete Neck.Helper['firstHelper']
+    delete Neck.Helper['secondHelper']
