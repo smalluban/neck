@@ -45,11 +45,11 @@ class Neck.Helper.list extends Neck.Helper
     @itemName or= 'item'
     @items = []
 
-    @watch '_main', (list)->
-      return unless list instanceof Array
-      if @list = list
+    @watch '_main', (@list)->
+      unless @list instanceof Array
+        return @resetItems() 
+      else
         @resetItems()
-
         @apply 'listSort' if @scope.listSort 
         @apply 'listFilter' if @scope.listFilter
 
@@ -75,7 +75,7 @@ class Neck.Helper.list extends Neck.Helper
     @items = []
     @$el.empty()
 
-    if @list.length
+    if @list?.length
       @add(item) for item in @list
       undefined
     else if @scope.listEmpty and @template
