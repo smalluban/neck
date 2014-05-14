@@ -1,3 +1,6 @@
+# Check reverse parsing
+REVERSE_PARSING = $('<div ui-test1 ui-test2></div>')[0].attributes[0].name is 'ui-test2'
+
 class Neck.Controller extends Backbone.View  
   divWrapper: true
   template: false
@@ -69,14 +72,20 @@ class Neck.Controller extends Backbone.View
 
   _parseNode: (node)->
     if node?.attributes
-      el = null
+      el = $(node)
+      buffer = []
       for attribute in node.attributes
         if attribute.nodeName?.substr(0, 3) is "ui-"
-          el or= $(node)
           name = Neck.Tools.dashToCamel attribute.nodeName.substr(3)
-          helper = new (Neck.Helper[name] or @injector.load(name, type: 'helper'))(el: el, parent: @, mainAttr: attribute.value)
-          stop = true if helper.template isnt false
-    
+          buffer.push
+            controller: (Neck.Helper[name] or @injector.load(name, type: 'helper'))
+            value: attribute.value
+
+      if REVERSE_PARSING then buffer.reverse()
+      for item in buffer
+        helper = new item.controller(el: el, parent: @, mainAttr: item.value)
+        stop = true if helper.template isnt false
+
     @_parseNode child for child in node.childNodes unless stop or not node
     undefined
 

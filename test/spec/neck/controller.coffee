@@ -197,14 +197,22 @@ describe 'Controller', ->
   # Parsing template tests
 
   it "should iterate through template and initialize helpers", =>
-    Neck.Helper['firstHelper'] = Neck.Helper['secondHelper'] = class Helper extends Neck.Helper
+    class Neck.Helper['firstHelper'] extends Neck.Helper
       check: ->
 
       constructor: ->
         super
         @check(arguments)
 
-    helperSpy = sinon.spy Helper.prototype, 'check'
+    class Neck.Helper['secondHelper'] extends Neck.Helper
+      check: ->
+
+      constructor: ->
+        super
+        @check(arguments)
+
+    spyFirst = sinon.spy Neck.Helper['firstHelper'].prototype, 'check'
+    spySecond = sinon.spy Neck.Helper['secondHelper'].prototype, 'check'
 
     class Controller extends Neck.Controller
       template: 
@@ -215,7 +223,77 @@ describe 'Controller', ->
         '''
 
     controller = new Controller().render()
-    assert.ok helperSpy.calledTwice
+    assert.ok spyFirst.calledOnce
+    assert.ok spySecond.calledOnce
+    assert.ok spyFirst.calledBefore spySecond
 
     delete Neck.Helper['firstHelper']
     delete Neck.Helper['secondHelper']
+
+  it "should respect helpers order in node", =>
+    class Neck.Helper['firstHelper'] extends Neck.Helper
+      check: ->
+
+      constructor: ->
+        super
+        @check(arguments)
+
+    class Neck.Helper['secondHelper'] extends Neck.Helper
+      check: ->
+
+      constructor: ->
+        super
+        @check(arguments)
+
+    class Neck.Helper['asdHelper'] extends Neck.Helper
+      check: ->
+
+      constructor: ->
+        super
+        @check(arguments)
+
+
+    spyFirst = sinon.spy Neck.Helper['firstHelper'].prototype, 'check'
+    spySecond = sinon.spy Neck.Helper['secondHelper'].prototype, 'check'
+    spyAsd = sinon.spy Neck.Helper['asdHelper'].prototype, 'check'
+
+    class Controller extends Neck.Controller
+      template: 
+        '''
+          <div ui-first-helper="test" ui-second-helper="test" ui-asd-helper="test"></div>
+        '''
+
+    controller = new Controller().render()
+    assert.ok spyFirst.calledOnce
+    assert.ok spySecond.calledOnce
+    assert.ok spyAsd.calledOnce
+
+    assert.ok spyFirst.calledBefore spySecond
+    assert.ok spySecond.calledBefore spyAsd
+
+    Neck.Helper['firstHelper'].prototype.check = ->
+    Neck.Helper['secondHelper'].prototype.check = ->
+    Neck.Helper['asdHelper'].prototype.check = ->
+
+    spyFirst = sinon.spy Neck.Helper['firstHelper'].prototype, 'check'
+    spySecond = sinon.spy Neck.Helper['secondHelper'].prototype, 'check'
+    spyAsd = sinon.spy Neck.Helper['asdHelper'].prototype, 'check'
+
+    class Controller extends Neck.Controller
+      template: 
+        '''
+          <div ui-second-helper="test" ui-asd-helper="test" ui-first-helper="test"></div>
+        '''
+
+    controller = new Controller().render()
+    assert.ok spyFirst.calledOnce
+    assert.ok spySecond.calledOnce
+    assert.ok spyAsd.calledOnce
+
+    assert.ok spySecond.calledBefore spyAsd
+    assert.ok spySecond.calledBefore spyFirst
+    assert.ok spyAsd.calledBefore spyFirst
+
+    delete Neck.Helper['firstHelper']
+    delete Neck.Helper['secondHelper']
+    delete Neck.Helper['asdHelper']
