@@ -268,8 +268,8 @@ describe 'Controller', ->
     assert.ok spySecond.calledOnce
     assert.ok spyAsd.calledOnce
 
-    assert.ok spyFirst.calledBefore spySecond
-    assert.ok spySecond.calledBefore spyAsd
+    assert.ok spyFirst.calledBefore(spySecond), 'firstHelper called before secondHelper'
+    assert.ok spySecond.calledBefore(spyAsd), 'secondHelper called before asdHelper'
 
     Neck.Helper['firstHelper'].prototype.check = ->
     Neck.Helper['secondHelper'].prototype.check = ->
@@ -290,9 +290,9 @@ describe 'Controller', ->
     assert.ok spySecond.calledOnce
     assert.ok spyAsd.calledOnce
 
-    assert.ok spySecond.calledBefore spyAsd
-    assert.ok spySecond.calledBefore spyFirst
-    assert.ok spyAsd.calledBefore spyFirst
+    assert.ok spySecond.calledBefore(spyAsd), 'secondHelper called before asdHelper'
+    assert.ok spySecond.calledBefore(spyFirst), 'secondHelper called before firstHelper'
+    assert.ok spyAsd.calledBefore(spyFirst), 'asdHelper called before firstHelper'
 
     delete Neck.Helper['firstHelper']
     delete Neck.Helper['secondHelper']

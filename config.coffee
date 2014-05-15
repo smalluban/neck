@@ -22,7 +22,7 @@ exports.config =
         'test/test.js': /^test(\/|\\)spec/
       order:
         before: [
-          'test/vendor/jquery-2.0.3.js'
+          'test/vendor/jquery-2.1.1.js'
           'test/vendor/mocha-1.14.0.js'
           'bower_components/underscore/underscore.js'
           'wrappers/prefix.js'
