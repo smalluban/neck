@@ -11,7 +11,7 @@ Neck is a library that adds number of features to Backbone.js:
 * Two-way routing (by refrencing and url based) to nested views
 * Simple dependeny injection module working with CommonJS out of the box
 
-Neck is highly inspired (in convension and code) by frameworks 
+Neck is highly inspired (in convention and code) by frameworks 
 [Angular](http://angularjs.org/) and [Batman](http://batmanjs.org/). 
 If you already know one of them, it will be easy to you to start working with Neck.
 
@@ -30,7 +30,7 @@ They have to be included before Neck.
 <script src="/path/to/neck.js"></script>
 ```
 
-If you use [Brunch](http://brunch.io/) it will include scripts automaticly in proper order to your vendor scripts file (It reads `bower.json` file).
+If you use [Brunch](http://brunch.io/) it will include scripts automatically in proper order to your vendor scripts file (It reads `bower.json` file).
 
 ## Documentation
 
