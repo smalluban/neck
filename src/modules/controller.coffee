@@ -77,11 +77,15 @@ class Neck.Controller extends Backbone.View
       for attribute in node.attributes
         if attribute.nodeName?.substr(0, 3) is "ui-"
           name = Neck.Tools.dashToCamel attribute.nodeName.substr(3)
-          buffer.push
-            controller: (Neck.Helper[name] or @injector.load(name, type: 'helper'))
-            value: attribute.value
+          controller = (Neck.Helper[name] or @injector.load(name, type: 'helper'))
+          sortHelpers = true if controller.prototype.orderPriority
+          buffer.push controller: controller, value: attribute.value
 
-      if REVERSE_PARSING then buffer.reverse()
+      # Firefox reads attributes in reverse order. 
+      # For manually set order use 'orderPriority' in helper
+      buffer.reverse() if REVERSE_PARSING
+      buffer = _.sortBy(buffer, (b)-> - b.controller.prototype.orderPriority ) if sortHelpers
+
       for item in buffer
         helper = new item.controller(el: el, parent: @, mainAttr: item.value)
         stop = true if helper.template isnt false

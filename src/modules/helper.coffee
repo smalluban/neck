@@ -8,6 +8,7 @@ class Neck.Helper extends Neck.Controller
     RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|this)($|\.|\ )/g
   
   parseSelf: false
+  orderPriority: 0
 
   constructor: (opts)->
     super
