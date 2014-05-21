@@ -304,3 +304,78 @@ describe 'Controller', ->
       delete Neck.Helper['firstHelper']
       delete Neck.Helper['secondHelper']
       delete Neck.Helper['asdHelper']
+
+    it "reverse buffer if browser reads attributes backwards", ->
+      _original = Neck.Controller.REVERSE_PARSING
+      Neck.Controller.REVERSE_PARSING = true
+
+      class Neck.Helper['firstHelper'] extends Neck.Helper
+        check: ->
+        constructor: ->
+          super
+          @check(arguments)
+
+      class Controller extends Neck.Controller
+        template: '<div ui-first-helper="test"></div>'
+
+      controller = new Controller().render()
+      delete Neck.Helper['firstHelper']
+
+      # TODO: create expect value to check if test is passing
+
+    it "should stops when helper with template occur", ->
+      class Neck.Helper['firstHelper'] extends Neck.Helper
+        check: ->
+        constructor: ->
+          super
+          @check(arguments)
+
+      class Neck.Helper['secondHelper'] extends Neck.Helper
+        template: true
+
+        check: ->
+        constructor: ->
+          super
+          @check(arguments)
+
+      class Controller extends Neck.Controller
+        template: 
+          '''
+            <div ui-first-helper="test" ui-second-helper="test">
+              <p ui-first-helper="test"></p>
+            </div>
+          '''
+
+      spyFirst = sinon.spy Neck.Helper['firstHelper'].prototype, 'check'
+      spySecond = sinon.spy Neck.Helper['secondHelper'].prototype, 'check'
+
+      controller = new Controller().render()
+
+      assert.ok spyFirst.calledOnce, "First helper occur twice but called once"
+      assert.ok spySecond.calledOnce
+
+      delete Neck.Helper['firstHelper']
+      delete Neck.Helper['secondHelper']
+
+  describe "render template", ->
+
+    it "should trigger proper events", ->
+      controller = new Neck.Controller()
+      spyBefore = sinon.spy()
+      spyClear = sinon.spy()
+      spyAfter = sinon.spy()
+      spyParsing = sinon.spy controller, '_parseNode'
+      controller.on 'render:before', spyBefore
+      controller.on 'render:clear', spyClear
+      controller.on 'render:after', spyAfter
+
+      controller.render()
+
+      assert.ok spyBefore.calledOnce
+      assert.ok spyClear.calledOnce
+      assert.ok spyParsing.calledOnce
+      assert.ok spyAfter.calledOnce
+
+      assert.ok spyParsing.calledAfter spyBefore
+      assert.ok spyParsing.calledAfter spyClear
+      assert.ok spyAfter.calledAfter spyParsing

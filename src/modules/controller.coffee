@@ -1,7 +1,7 @@
-# Check reverse parsing
-REVERSE_PARSING = $('<div ui-test1 ui-test2></div>')[0].attributes[0].name is 'ui-test2'
+class Neck.Controller extends Backbone.View 
+  # Check reverse parsing 
+  @REVERSE_PARSING: $('<div ui-test1 ui-test2></div>')[0].attributes[0].name is 'ui-test2'
 
-class Neck.Controller extends Backbone.View  
   divWrapper: true
   template: false
   parseSelf: true
@@ -83,7 +83,7 @@ class Neck.Controller extends Backbone.View
 
       # Firefox reads attributes in reverse order. 
       # For manually set order use 'orderPriority' in helper
-      buffer.reverse() if REVERSE_PARSING
+      buffer.reverse() if Neck.Controller.REVERSE_PARSING
       buffer = _.sortBy(buffer, (b)-> - b.controller.prototype.orderPriority ) if sortHelpers
 
       for item in buffer
