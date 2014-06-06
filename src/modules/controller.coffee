@@ -88,7 +88,7 @@ class Neck.Controller extends Backbone.View
 
       for item in buffer
         helper = new item.controller(el: el, parent: @, mainAttr: item.value)
-        stop = true if helper.template isnt undefined
+        stop = true if helper.template
 
     @_parseNode child for child in node.childNodes unless stop or not node
     undefined
