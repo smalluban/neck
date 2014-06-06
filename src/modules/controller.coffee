@@ -3,10 +3,10 @@ class Neck.Controller extends Backbone.View
   @REVERSE_PARSING: $('<div ui-test1 ui-test2></div>')[0].attributes[0].name is 'ui-test2'
 
   divWrapper: true
-  template: false
   parseSelf: true
+  template: undefined
 
-  injector: Neck.DI.commonjs
+  injector: Neck.DI.globals
 
   constructor: (opts = {})->
     super
@@ -23,7 +23,7 @@ class Neck.Controller extends Backbone.View
       # Inherit injector
       @injector = @parent.injector
       
-    if opts.template and not @template
+    if opts.template and @template is undefined
       @template = opts.template
 
     if @template is true
@@ -88,7 +88,7 @@ class Neck.Controller extends Backbone.View
 
       for item in buffer
         helper = new item.controller(el: el, parent: @, mainAttr: item.value)
-        stop = true if helper.template isnt false
+        stop = true if helper.template isnt undefined
 
     @_parseNode child for child in node.childNodes unless stop or not node
     undefined
