@@ -23,12 +23,12 @@ class Neck.Controller extends Backbone.View
       # Inherit injector
       @injector = @parent.injector
       
-    if opts.template and @template is undefined
-      @template = opts.template
-
-    if @template is true
-      @template = @$el.html()
-      @$el.empty()
+    switch @template
+      when undefined
+        @template = opts.template if opts.template
+      when true
+        @template = @$el.html()
+        @$el.empty()
 
     @params = opts.params or {}
 
@@ -87,8 +87,8 @@ class Neck.Controller extends Backbone.View
       buffer = _.sortBy(buffer, (b)-> - b.controller.prototype.orderPriority ) if sortHelpers
 
       for item in buffer
-        helper = new item.controller(el: el, parent: @, mainAttr: item.value)
-        stop = true if helper.template
+        stop = true if item.controller.prototype.template
+        new item.controller el: el, parent: @, mainAttr: item.value
 
     @_parseNode child for child in node.childNodes unless stop or not node
     undefined
