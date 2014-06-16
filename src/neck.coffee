@@ -32,8 +32,7 @@ Neck.DI.commonjs =
   controllerPrefix: 'controllers'
   helperPrefix: 'helpers'
   templatePrefix: 'templates'
-
-  _routePath: /^([a-zA-Z$_\.]+\/?)+$/i
+  _routePath: /^([a-zA-Z$_][a-zA-Z0-9$_\.]+\/?)+$/i
 
   load: (route, options)-> 
     if route.match @_routePath
