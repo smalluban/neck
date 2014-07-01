@@ -4,16 +4,14 @@
 
 Neck is a library that adds number of features to Backbone.js:
 
-* Live data binding between view and controller
-* HTML node attributes way to create logic in views
-* Easy and automatic connection between controller and view
-* Working with any template engine with data binding
-* Two-way routing (by refrencing and url based) to nested views
+* Two way data-binding between controller and view
+* Over a dozen helpers creating view logic:
+    * collections/lists management
+    * showing/hiding elements
+    * triggering events
+    * routing (by refrencing and url based) to nested views (working like Android Activity Stack) 
+    * and more...
 * Simple dependeny injection module working with CommonJS out of the box
-
-Neck is highly inspired (in convention and code) by frameworks 
-[Angular](http://angularjs.org/) and [Batman](http://batmanjs.org/). 
-If you already know one of them, it will be easy to you to start working with Neck.
 
 ## Setup
 
@@ -30,16 +28,931 @@ They have to be included before Neck.
 <script src="/path/to/neck.js"></script>
 ```
 
-If you use [Brunch](http://brunch.io/) it will include scripts automatically in proper order to your vendor scripts file (It reads `bower.json` file).
+## Browser support
+
+* Current version of all modern browsers, IE9+
+
+## Overview
+
+```coffeescript
+class MyController extends Neck.Controller
+  constructor:->
+    super
+    @scope.models = new Backbone.Collection()
+```
+
+```jade
+div(ui-neck="'MyController'")
+  ul(ui-collection="models")
+    li
+      span(ui-value="item.get('name')")
+      button(ui-event-click="item.destroy()")
+
+  input(ui-bind="newItemName")
+  button(
+    ui-event-click="models.add({name: newItemName}); newItemName = ''"
+    ui-attr="{'disabled': !newItemName}"
+  )
+```
+
+Neck library is inspired (in convention and code) by frameworks [Angular](http://angularjs.org/) and 
+[Batman](http://batmanjs.org/), mainly for data-binding process. Using Neck you have fully 
+functional Backbone.js framework. You can use it with many other plug-ins and libraries created 
+for Backbone.js.
+
+To take full potencial of Neck, You should use it with CoffeeScript and one of JavaScript template engines. 
+There is [neck-skeleton](http://github.com/smalluban/neck-skeleton) project including 
+Branch build tool, CommonJS, CoffeeScript, Stylus and Jade.
 
 ## Documentation
 
-Will be very soon here.
+- [Neck.Controller](#neckcontroller)
+    - [Initializing](#initializing)
+    - [Instance properties](#instance-properties)
+        - [scope](#scope-controllerscope)
+        - [params](#params-controllerparams-default-undefined)
+        - [template](#template-controllertemplate-default-undefined)
+        - [divWrapper](#divwrapper-controllerdivwrapper-default-true)
+        - [parseSelf](#parseself-controllerparseself-default-true)
+        - [injector](#injector-controllerinjector-default-neckdiglobals)
+    - [Instance methods](#instance-methods)
+        - [constructor](#constructor-new-neckcontrollerparams)
+        - [watch](#watch-controllerwatchkeys-callback-initcall)
+        - [apply](#apply-controllerapplykey)
+- [Neck.Helper](#neckhelper)
+    - [Initializing](#initializing)
+    - [Understanding accessors](#understanding-accessors)
+    - [Power of universal interpreting](#power-of-universal-interpreting)
+    - [Mapping accessors](#mapping-accessors)
+    - [Helper with template](#helper-with-template)
+    - [Instance properties](#instance-properties)
+        - [attributes](#attributes-helperattributes-default-undefined)
+        - [orderPriority](#orderpriority-helperorderpriority-default-0)
+- [Neck.App](#neckapp)
+    - [Instance properties](#instance-properties)
+        - [routes](#routes-approutes-default-false)
+        - [history](#history-apphistory-default-pushestate-true)
+- [Neck.DI](#neckdi)
+    - [Neck.DI.globals](#neckdiglobals)
+    - [Neck.DI.commonjs](#neckdicommonjs)
+- [Built-in helpers](#built-in-helpers)
+    - [ui-attr](#ui-attr)
+    - [ui-bind](#ui-bind)
+    - [ui-class](#ui-class)
+    - [ui-collection](#ui-collection)
+    - [ui-element](#ui-element)
+    - [ui-event-...](#ui-event-)
+    - [ui-hide & ui-show](#ui-hide--ui-show)
+    - [ui-href](#ui-href)
+    - [ui-init](#ui-init)
+    - [ui-list](#ui-list)
+    - [ui-neck](#ui-neck)
+    - [ui-route](#ui-route)
+    - [ui-template](#ui-template)
+    - [ui-value](#ui-value)
+    - [ui-yield](#ui-yield)
 
-## Neck for Spine
+## Neck.Controller
 
-Neck for Spine moved to [neck-spine](https://github.com/smalluban/neck-spine) repository. 
-After some problems with model sync with server I changed framework to Backbone.
+Extends `Backbone.View`, controls data passed to template. It can be also container to callback actions 
+from view (Initialized template with controller is called as view).
+
+### Initializing
+
+`Neck.Controller` can be initialized directly or by `ui-neck` helper (read ui-neck helper section): 
+
+```coffeescript
+class MyController extends Neck.Controller
+  template: 'myControllerTemplate'
+  constructor:->
+    super
+    # Your setup actions
+    @$el.addClass 'myController'
+
+myController = (new MyController el: $('#myElement')).render()
+```
+
+When you initialize controller directly, you have to call `render` method to trigger parsing process and connect
+template with controller `el` object.
+
+### Instance properties
+
+#### scope `controller.scope` 
+
+Everything that you set inside `scope` property will be available in view.
+
+```coffeescript
+class MyController extends Neck.Controller
+  constructor:->
+    super
+    @scope.property = 'Some text'
+    @scope.something = 'Some other text'
+```
+
+```jade
+h1 My View
+p!= property
+ul
+  li!= something
+  li(ui-value="something")
+```
+
+You can use `scope` properties directly and put them in template (they will refresh on every `render` call), 
+or put them into `helpers` as `accessor`.
+
+`scope` is passed as first argument to templating function. Many templating engines, for example Jade, use passed object as context. Then `scope` properties can be accessed by thier name directly.
+
+Properties can be predefined:
+
+```coffeescript
+class MyController extends Neck.Controller
+  scope:
+    property: 'first property text'
+
+  constructor: ->
+    super
+    console.log @scope.property # Will write 'first property text'
+```
+
+`scope` has special `_context` and `_resolves` properties. They should not be touched and used directly.
+
+`scope` can be inherited from one controller to another (as `prototype`). 
+Then child controller will have access to parent `scope` properties. To do so `parent` property 
+has be used when controller is initialized:
+
+```coffeescript
+myController = new Neck.Controller parent: ohterController
+```
+
+#### params `controller.params` (_default: `undefined`_)
+
+Use it to safely pass arguments from one controller to another.
+
+For example:
+
+```coffeescript
+myController =  new Neck.Controller(params: myParam: 'some text')
+```
+
+Consider using `params` with higher priority than inheriting `scope`. Passing params to 
+controller is safer and more useful. For example you can create generic contollers 
+that react to given params.
+
+Params are not pushed to `scope` property. There is no `scope.params` in controller. 
+If you want to some param to be in view You have to put it when initializing controller:
+
+```coffeescript
+class myController extends Neck.Controller
+  constructor:->
+    super
+    @scope.myProperty = @params.passedObject
+```
+
+#### template `controller.template` (_default: `undefined`_)
+
+Property used for rendering body of view. Expected values:
+
+* `string`: id or template body for dependency injector (read Neck.DI section). Injector should return 
+  `function` (as `function` value below) or `string` containing template.
+* `boolean`: When set to `false` controller element will not be touched at all. When set to `true` will use exisiting 
+  DOM tree of controller element as template. In both cases render method will parse nodes (looking for helpers), but when 
+  template is set to `true`, DOM tree is empty before rendering. This is important for example when helper will reuse own 
+  body to create list of elements (read ui-collection or ui-list sections).
+* `function`: Will be called with `controller.scope` property as first argument. Should return `string` value 
+  containg template body 
+
+When is not set (default `undefined` value) template can be overwritten by options pushed to `constructor` method: 
+
+```coffeescript
+# This will work. template will be set to 'myTemplatePath'
+myController = new Neck.Controller template: 'myTemplatePath'
+
+class Controller extends Neck.Controller
+  template: 'myWorkingTempalatePath' # can be also false / true / templateBody[string]
+
+# This won't change template, and it still will be 'myWorkingTemplatePath'
+myController = new Controller tempalte: 'myTemplatePath'
+```
+
+Some helpers use this functionality to automatically connects controller with corresponding view (RoR way).
+Initializing controller with set `template` param will point the same path for view as for controller 
+(but with `template` type for `Neck.DI`).
+
+#### divWrapper `controller.divWrapper` (_default: `true`_)
+
+DOM node of controller (read `Backbone.View` docs) for default is created as empty `div`. View will be 
+appended inside this `div` element. `divWrapper` gives you option to change this behavior. If it is set to `false`, 
+`el` in DOM will be replaced by view or appended to DOM without `div` wrapper - only what will be inside view.
+
+#### parseSelf `controller.parseSelf` (_default: `true`_)
+
+It sets parsing view starting point. It can be started from root node (when set to `true`) or from direct 
+children of root node (when set to `false`).
+
+#### injector `controller.injector` (_default: `Neck.DI.globals`_)
+
+Injector property sets which dependency injector object is used when fetching controllers, helpers and templates. 
+This property is inherited by controllers and helpers through whole application. You do not need to set it in every 
+controller/helper, only root controller should have this property set.
+
+### Instance methods
+
+#### constructor `new Neck.Controller(params)`
+
+Constructor method reads pushed `params` object and use properties: `parent`, `params`, `template` and all that use 
+`Backbone.View` (like `el` property). 
+
+They are used to set instance properites. Other properties from given object are ignored.
+
+#### watch `controller.watch(keys, callback, initCall)`
+
+Triggers `callback` action when one or more `scope` properties has changed. Expected arguments:
+
+* `keys` [string]: space separated list of evaluating properties of `controller.scope` object
+* `callback` [function]: called every time when one of keys has changed; called with all keys as arguments 
+  in function, `this` set to `controller` instance where `watch` is set.
+* `initCall` [boolean]: Default value: `true`. If set to `false` your callback will not be triggered when 
+  watching is initialized.
+
+For `Backbone.Model` method listen also to `change` event. For `Backbone.Collection` its `add`, 
+`remove` and `change` events.
+
+When watch is set first time, that `scope` property is changed to getter/setter property. Then every time 
+when value of this property change, callback will be invoked:
+
+```coffeescript
+@scope.one = 'Something'
+@watch 'one', (value)-> console.log "One now is: #{value}"
+
+# This will trigger callback with new value
+@scope.one = 'New thing'
+```
+
+Deep properties are not supported. Do not use it with keys set to something like 'one.two.three'. 
+This method do not polyfills `Object.observe` method. Changing deep properties directly in controller will not 
+trigger callback. For more complex structures use `Backbone.Model` and 'Backbone.Collection`. 
+(There is great library [Backbone-relational.js](http://backbonerelational.org/) for models with relations).
+
+Hovewer, helpers accessors triggers proper changes on deep properties (thanks to its mapping proccess). 
+It is recommended to rely more on helpers than using watching method directly in controller.
+
+#### apply `controller.apply(key)`
+
+Usually called by library, accessors or helpers, but can be invoke manually to trigger `watch` callbacks 
+for scope properties. Should be called with `string` containing `contorller.scope` property name.
+
+## Neck.Helper
+
+Extends `Neck.Controller`. Used to create view logic and controller data manipulation.
+
+### Initializing
+
+View of controller (`el` object) is parsed when controller is rendered. Going down in tree, nodes are read 
+looking for specific attributes - with `ui-` prefix. Name after prefix is traslated from dashed to camelCase 
+and checked, if helper definition exists - firstly in built-in helpers container or when there is no helper - 
+pushed to `Neck.DI` with `helper` type.
+
+```jade
+div(ui-some-helper="someValue", some-helper-property="'test'")
+``` 
+
+On initializing helper, main attribute body is used. Initializer can take also other attributes. To avoid 
+duplicates use part after prefix and some name. For example `ui-some-helper` should read other attributes 
+like `some-helper-property` or `some-helper-other-thing`. This properites are called accessors.
+
+Helper inherits `scope` from controller. Controller `scope` properties can be accessed from helper `scope`. 
+
+### Understanding accessors
+
+Accesors are automatically pushed to helper `scope`. Main attribute (defining helper) as `scope._main`. 
+Other attributes are translated from dashed to camelCase (from `some-helper-property` to `scope.someHelperProperty`).
+
+Attributes body is interpreted as JavaScript code in context of parent controller `scope`. 
+This means that `someValue` is translating into `controller.scope.someValue`. Interpreting method is called every 
+time accessor value is read or written. Value of accesor is dynamic and depends of actual state of controller `scope`.
+
+As body is interpreted as JavaScript, you can write statements as: `a + b + 'someText'` or `someAction(a + b)`. 
+In this example `a` and `b` will be interpreted in controller `scope` context. Also method `someAction` will be called
+as `controller.scope.someAction`. 
+
+Not initialized `controller.scope` properties will be set to `undefined` to prevent 
+JavaScript runtime error. Deep properties will be set as chain of simple objects with last attribute set as `undefined`. 
+For example `one.two.three` if not present in `controller.scope` will be created as `scope.one = { two: { three: undefined }}`.
+
+More complex statements are not supported: `if (a) { someAction(b)} ` or `a ? b : c`. To create that logic you can use 
+group of predefined helpers.
+
+To put `string` inside accessor always use single quotes inside dobule qoutes as `ui-something="'myString' + property"`. 
+This is important because parts in single qoutes are ignored in mapping proccess. Also with objects set properties names
+with single quotes:
+
+```jade
+// Wrong way
+div(ui-value='"someValue" + property')
+div(ui-attr='{someProperty: "someText"}')
+
+// Good way
+div(ui-value="'someValue' + property")
+div(ui-attr="{'someProperty': 'someText', 'otherThing': propertySecond }")
+```
+
+Adding special character `@` gives possibility to call controller directly (`@someValue` will be interpreted 
+as `controller.someValue`). This is useful to call actions from controller inside helper. In below example action 
+written directly in controller will be triggered:
+
+```jade
+a(ui-event-click="@controllerAction()")
+```
+
+If you want to call some global value, like `window.something` write it with `this.` prefix (`this.something`). 
+
+```jade
+span(ui-value="this.moment().fromNow()")
+```
+
+### Power of universal interpreting
+
+Because helper accessors are always interpreted as JavaScript, even if helper needs string you can pass 
+variable or statement. For example `ui-route` uses main accessor as controller ID, but you can put there `scope`
+property that value will be used as controller ID:
+
+```coffeescript
+@scope.myRoute = 'someController'
+```
+
+```jade
+div(ui-route="myRoute", ...)
+```
+
+As this is general behavior, it will work with any helper and any accessor.
+
+### Mapping accessors
+
+Accessor attribute body is scanned for controller's `scope` properties and all are pushed 
+to special `scope._resolves` container. When any property changes, refresh event of accessor will be triggered.
+
+```coffeescript
+class Helper exteds Neck.Helper
+  constructor:->
+    super
+    @watch '_main', (value)->
+      console.log "new value of helper: #{value}"
+```
+```jade
+div(ui-helper=" + 2 + someProperty + one(thirdProperty) + 'otherValue' + secondProperty")
+```
+
+In this example helper `scope._main` depends on `someProperty`, `secondProperty` and `thirdProperty` of `controller.scope`. 
+Controller scope functions are ignored as mapper does know what can be changed in function body. However putting property 
+as function argument will work and will be used for mapping.
+
+Mapping works with deep properites:
+
+```jade
+div(ui-helper="someObject.someProperty")
+```
+
+In this case mapping will add two properties to be watched: `someObject` and `someObject.someProperty`. 
+Other helpers can change value of `someObject.someProperty` and then it will trigger referesh. When other helper 
+or controller will change `someObject` value it also will trigger refresh on that accessor.
+
+### Helper with template
+
+To avoid problems with changing `orderPriority` and `template` properties on already initialized helper, 
+they are taken from helper `prototype`. You have to set them before initializing:
+
+```coffeescript
+class MyHelper extends Neck.Helper
+  # Good way
+  template: true
+  orderPriority: 1
+
+  constructor:->
+    super
+
+    # Bad way - parsing will take `true` value of `template`
+    @template = false
+```
+
+### Instance properties
+
+#### attributes `helper.attributes` (_default: `undefined`_)
+
+Array containing list of attributes that will be created as accessors of helper. As written above they should be created 
+with helper name as prefix (but it is not mandatory). 
+
+```coffeescript
+class SuperThing extends Neck.Helper
+  attributes: [ 'superThingOne', 'superThingTwo']
+
+  constructor: ->
+    super
+    console.log @scope.superThingOne, @scope.superThingTwo
+
+```
+```jade
+div(ui-super-thing="'great stuff'", super-thing-one="'yes'", super-thing-two="'no' + ' or ' + 'yes'")
+```
+
+Main attribute (as `scope._main`) is always set, even if `attributes` property is `undefined`.
+
+#### orderPriority `helper.orderPriority` (_default: `0`_)
+
+Chrome and Firefox browsers preserve order of node attributes. Unfortunately Internet Explorer does not. If you plan to write 
+mobile apps for Android and iOS you can skip this property.
+
+When `orderProperty` is set to higher value helper will be initialized before other helpers in the same node.
+
+## Neck.App
+
+Extends `Neck.Controller`, adds url routing for navigation. Should be used only once for application, 
+usually as root controller. When `App` is initialized, it checks routes and starts history. 
+
+Routes are connected with yields, created by `ui-yield` helper. 
+
+### Instance properties
+
+#### routes `app.routes` (_default: `false`_)
+
+List of application routes. Routes can be created in different ways:
+
+```coffeescript
+class App extends Neck.App
+  routes:
+    # Without 'yields' - controller points to 'main' yield
+
+    # Shortes way - set as string
+    'someUrl': 'someController'
+
+    # Full way - set as object
+    # with passed options
+    'someUrl/otherUrl':
+      controller: 'someController'
+      params:
+        one: 1
+        two: 2
+      refresh: false
+      replace: false
+
+    # With multi yields, set `yields` container with yields names
+
+    'someUrl/:id':
+      yields:
+        main:
+          controller: 'someController'
+        modal: 'otherController'
+        extra: false
+```
+
+This three ways can be mixed. Setting yield to `false` will clear it when url will be reached. Params will be passed as `controller.params`. 
+`refresh` and `replace` properties are described in `ui-yield` section.
+
+Routes are passed to `Neck.Router` instance module which extends `Backbone.Router`. It has all functionality 
+of its parent as setting url params. Different is with passing params to controller - they are passed as object 
+with named parameters from url and query parameters (it is prepared to supports 
+[backbone-query-parameters](https://github.com/jhudson8/backbone-query-parameters)):
+
+```coffeescript
+# With set url like: '/users/:id' and going to '/users/1?title=asd' 
+# will initialize controller with object
+
+@params = 
+  id: '1'
+  title: 'asd' # Only if you add backbone-query-parameters plugin
+```
+
+#### history `app.history` (_default: `pushestate: true`_)
+
+Options passed to `Backbone.history.start` method. Read `Backbone.history` docs for more information.
+
+## Neck.DI
+
+Container for dependency injection modules. Every time when application needs `controller`, `helper` or `template` 
+dependency injection `load` method is called:
+
+```coffeescript
+# Loading controller
+@injector.load someControllerID, type: 'controller'
+```
+
+`load` method should take first argument as ID of fetching object, second arguments is options object. For now library calls
+that method with options set to `type: 'controller|helper|template'`.
+
+`Neck` supports out of the box two modules: `Neck.DI.globals` and `Neck.DI.commonjs`. For default `Neck` uses `globals`. 
+
+### Neck.DI.globals
+
+ID passed to `load` method will be checked as global variable, `someController` will be read as `window.someController`. 
+Using `globals` is very easy - to define something, put it into global scope:
+
+```coffeescript
+class window.MyController extends Neck.Controller
+  ...
+```
+```jade
+div(ui-neck="'MyController'")
+```
+
+When template is fetched and it is not found as global variable, ID is used as template body. This gives possibility to 
+set `controller.template` as string containing template body.
+
+### Neck.DI.commonjs
+
+`commonjs` follows CommonJS module to load dependencies. You have to define your resources in proper way and set `require` global method.
+
+Module has three parameters that are added as prefixes to resources paths:
+
+* `controllerPrefix`: [string], default: `controllers` 
+* `helperPrefix`: [string], default: `helpers` 
+* `templatePrefix`: [string], default: `templates`
+
+Change them before your application starts, if you need. You can do this like:
+
+```coffeescript
+myDI = _.extend Neck.DI.commonjs,
+  controllerPrefix: 'other/controllers/root/path'
+  helperPrefix: 'other/helpers/root/path'
+  templatePrefix: 'other/tempaltes/root/path'
+```
+
+The same way as `globals`, when template is not found, ID is used as template body.
+
+## Built-in helpers
+
+Built-in helpers cover basic logic and data management in view. They work with dynamic data-binding, 
+so they react to actual state of controller `scope`.
+
+### ui-attr
+
+```jade
+div(ui-attr="{'id': someProperty, 'disabled': inputRead == 'something' }")
+```
+
+Set collection of attributes. Main accessor should be a `object` with `key` and `value` pairs. Key name is used 
+as attribute name. If value return `true`, key is set with key name (for example: `disabled='disabled'`). 
+When value is `false` key is removed from node. In ohter cases key is set with value as `string`.
+
+### ui-bind
+
+```jade
+// Simple binding
+input(ui-bind="someProperty")
+
+// Backbone.Model property binding
+input(ui-bind="someModel", bind-property="'name'")
+```
+
+Two way binding `scope` property or attribute of `Backbone.Model`. Model has be bind 
+with set `bind-property` accessor as name of attribute (second example).
+
+Model property could be bind also as: `input(ui-bind="someModel.attributes.name")`. This is highly unrecommended, because then
+`Backbone.Model` events will not be triggered.
+
+Helper listen to `change` and `search` events and use `val()` jQuery method to push value of property.
+It works only with `input`, `textarea`, and `select` types. To push value for other types use `ui-value`.
+
+Number is translated to `integer` or `float` (works with dot and comma delimiter). Other values are returned as `string`.
+
+### ui-class
+
+```jade
+div(ui-class="{'selected': index == 1, 'moving': someAction(property)}")
+```
+
+Set collection of classes. Main accessor should be a `object` with `key` and `value` pairs. Key name is used as class
+name added or removed from node depending on logic value of `value`.
+
+### ui-collection
+
+```jade
+div(ui-collection="collection" ... )
+```
+
+Render `Backbone.Collection` models. Main accessor should points to `Backbone.Collection`. Helper uses accessors:
+
+* `collection-item`: `string`: Name of collection model in `scope` property of item. Default `item`.
+* `collection-sort`: `string` or `function`: Variable pushed as collection.comparator. Read `Backbone.Collection` 
+  docs for more info.
+* `collection-filter`: `string` or `function`: When this attribute is `string`, it is check if `model.toString()` 
+  contain this `string`. When its false, `ui-hide` class is added to item. When attribute is `function`, 
+  it should return `true` or `false` for given item as argument.
+* `collection-view`: `string id`: Used with dependeny injection to load item view.
+* `collection-empty`: `string id`: When collection is empty node can be fill in empty template.
+* `collection-controller`: `string id`: You can use your own item controller instead `Neck.Helper.collectionItem`.
+  This can broke helper functionality. Use it if you really need it. 
+
+Every item has `_index` property pushed to its `scope` which coresponds to collection list index. This property is set once 
+at the begining and is not change when collection is sorted or filtered.
+
+#### Item templating
+
+When `collection-view` is not set, body of node is used as item template:
+
+```jade
+ul(ui-collection="users")
+  li(ui-value="item.get('name')")
+```
+
+There is different between using inline template (as node body) and using `collection-view`. Inline template can not have 
+own template engine logic (it is invoke once when parent template is rendered). Also you can not use item `scope` 
+properties directly:
+
+```jade
+ul(ui-collection="users")
+  // This will be called when hole ul... is rendered, not when using it for item
+  if item.something 
+    li(ui-value="item.get('name')")
+    li!= item.get('address') // This will not work also
+```
+
+For that behavior use `collection-view`. It is separate view with own logic and access to `scope` as normal controller:
+
+```jade
+ul(ui-collection="users", collection-view="'myUserViewPath'")
+```
+
+```jade
+if item.something
+  li!= item.get('name')
+```
+
+Using inline template, everything is refreshed by helpers (data-binding). Using `collection-view` gives possibility 
+to set values directly. Because of that item view has to be rerender every time model change. It is better to use with 
+external template `scope` properties directly than by helpers (especially avoid `ui-value` and use `= property`). 
+
+It gives big performance boost. Rendering large collection with nested collectons with inline templating 
+(using lot of helpers) can slow down dramatically. Using `collection-view` you can set item body with `scope` 
+properties written directly or with data-binding (using helepers).
+
+### ui-element
+
+```jade
+div(ui-element="'myDiv'")
+```
+
+```coffeescript
+class Controller extends Neck.Controller
+  ...
+  someCallback: ->
+    @scope.myDiv.addClass 'super'
+```
+
+Create `jQuery` object of node and put it into `controller.scope`. Main accessor should be `string` name.
+
+### ui-event-...
+
+```jade
+// Calling controller callback
+div(ui-event-submit="@sendForm(true, false)")
+
+// Simple setting new value of scope.property 
+div(ui-event-click="property = 'newValue'")
+
+// Statements can use javascript breaking line to create 
+// more complex actions
+div(ui-event-blur="setSomething(inputValue); inputValue = 'something'")
+```
+
+Trigger proper event by calling action written in main accesor. Type of event is set in name of helper, for example
+to trigger `click` event use `ui-event-click` helper. List of implemented events:
+
+* Mouse events: `click`, `dblclick`, `mouseenter`, `mouseleave`, `mouseout`, `mouseover`, `mousedown`, `mouseup`, 
+  `drag`, `dragstart`, `dragenter`, `dragleave`, `dragover`, `dragend`, `drop`.
+* General events: `load`, `focus`, `focusin`, `focusout`, `select`, `blur`, `submit`, `scroll`.
+* Touch events: `touchstart`, `touchend`, `touchmove`, `touchenter`, `touchleave`, `touchcancel`.
+* Keys events: `keyup`, `keydown`, `keypress`.
+
+Helper invoke `preventDefault()` method of DOM `event` object. It ensure that for example form will not be submit 
+or link will not change url.
+
+#### Understading data-binding
+
+When event is triggered, `apply` method is invoke for releated to main accessor `scope` properties. This close the flow 
+of data-binding proccess. Using event helpers to interact with user actions ensure that your application view will react 
+to data changes automatically.
+
+#### Using jQuery event object
+
+You can pass reference to function istead of calling it: `ui-event-click="myFunction"`. When helper recognize that main
+accessor is a `function`, it will invoke that function passing jQuery event as first argument. Unfortunelly You can not then
+pass any other arguments defining event.
+
+Also when you pass function normally, but it returns `function`, that `function` will be treat as explained above (as `function` that
+will be called with jQuery event object).
+
+#### Multiply events
+
+Neck does not support using the same halper in one node more than once, as DOM attributes have to be unique. You can use complex actions
+or wrap node into other node (events are bubbling):
+
+```jade
+div(ui-event-click="...")
+  span(ui-event-click="...")
+```
+
+### ui-hide & ui-show
+
+```jade
+div(ui-show="something == 'great'")
+div(ui-hide="something != 'great'")
+```
+
+Hides or shows element depends on main accessor logic value. Both helper works similar (with oposite logic) with one difference - `ui-hide` hides 
+node before it checks logic value for first time. This ensure that element is hidden before it can be seen.
+
+`ui-show` and `ui-hide` (also `ui-collection` and `ui-list` to filter elements) uses global `ui-hide` CSS class, 
+that set `display: none !important`. You can overwrite it if you want to this working differently.
+
+### ui-href
+
+```jade
+a(ui-href="'someUrl'")
+```
+
+Call `Neck.Router.navigate` method when node is clicked. This changes url using routes from application and fill in yields.
+
+Helper adds `href='#'` attribute to node (for styling purposes).
+
+### ui-init
+
+```jade
+div(ui-init="someAction(); someProperty = 123")
+```
+
+Action invoked in parsing proccess. This can be usefull to initially set some values in `scope` directly from view.
+
+### ui-list
+
+```jade
+div(ui-list="someList", ...)
+```
+
+Helper works similar to `ui-collection`, but without events which collection has (adding or removing elements, etc..).
+Main accessor should points to `Array` instance. Helper uses accessors:
+
+* `list-item`: `string`: Name of list element in `scope` property of item. Default `item`.
+* `list-sort`: `function`: Function called within `_.sortBy` method with element as argument. You can there returned some 
+  value that will be used to sort elements.
+* `list-filter`: `string` or `function`: When this attribute is `string`, it is check if `item.toString()` 
+  contain this `string`. When its false, `ui-hide` class is added to item. When attribute is `function`, 
+  it should return `true` or `false` for given item as argument.
+* `list-view`: `string id`: Used with dependeny injection to load item view,
+* `list-empty`: `string id`: When list is empty node can be fill in empty template.
+* `list-controller`: `string id`: You can use your own item controller instead `Neck.Helper.collectionItem`.
+  This can broke helper functionality. Use it if you really need it. 
+
+Every item has `_index` property pushed to its `scope` which coresponds to list index. This property is set once 
+at the begining and is not change when list is sorted or filtered.
+
+Helper only rerender list when main accessor changes. If you change array element 
+or remove it from array, helper will not rerender:
+
+```coffeescript
+@scope.someList = ['something']
+
+# Won't change view
+@scope.someList[0] = 'newValue'
+
+# Will change view 
+@scope.someList = ['one', 'two', 'three']
+```
+
+Use this helper for simple list of data. For better data-binding use `ui-collection`.
+
+#### Item templating
+
+Read `ui-collection` corresponding section.
+
+### ui-neck
+
+```jade
+div(ui-neck="'controllerName'", neck-injector="'commonjs'")
+```
+
+This helper is not real `Neck.Helper` instance. It is ordinary jQuery method invoke when document is ready. 
+For coherence in library, helpers name convention is used. Main accessor should point to your root controller.
+
+Set `neck-injector` as name of `Neck.DI` dependency injector you want to use. It will be inherit through all
+controllers and helpers.
+
+`ui-neck` uses RoR convention to use controller name as path to template. It constructs controller passing `template`
+param as controller ID. When controller has not defined `template` property, library will look for template using
+controller ID (but with `template` type). This works very well with `commonjs` dependency injector. 
+With `globals` it will point to the same object and can throw errors.
+
+To avoid reusing helper when controller is render, `ui-neck` attribute is removed from node after initialize.
+
+### ui-route
+
+```jade
+a(ui-route="'someController'", route-yield="'main'", route-params="{'item': someItem }" ... )
+```
+
+Helper pushes controller to `ui-yield` on click. Main accessor should be `string` controller ID. Helper uses accessors:
+
+* `route-yield`: `string id` : To yield with that id controller will be pushed. When not set, 'main' id will be used.
+* `route-params`: `object`: Object passed as `params` property to controller.
+* `route-refresh`: `boolean`: Refresh option passed to yield. Read more in `ui-yield` section.
+* `route-replace`: `boolean`: Replace option passed to yield. Read more in `yi-yield` section.
+
+Helper does not work without corresponding `ui-yield` (set with `route-yield`). Routing does not change url either. 
+For url routing use `ui-href` and `Neck.App` with set routes. 
+
+### ui-template
+
+```jade
+div(ui-template="someTemplate")
+  p Empty list
+
+div(ui-collection="collection", collection-empty="someTemplate")
+```
+
+Set node body as `scope` property. Main accessor will be set. It has to points to real property (can be not initialized). 
+
+Helper is useful for example for using as empty template for `ui-collection` or `ui-list`. 
+Then you do not have to create separate file with empty message, just use property used with `ui-template`.
+
+Node is removed from DOM after helper is initialized.
+
+### ui-value
+
+```jade
+div(ui-value="someModel.get('name') + 'some text'")
+```
+
+Renders main accessor value. When value is `undefined` helper renders empty string.
+
+### ui-yield
+
+```jade
+div(ui-yield="'main'" ... )
+```
+
+Container for nested views (in this context view means controller with connected template). Main accessor 
+should be `string` unique ID of yield. This ID can be used by `ui-route` and routes in `Neck.App` 
+to determinate where view should be pushed. Helper uses accessors:
+
+* `yield-view`: `string id`: Controller ID of initially pushed view to yield
+* `yield-params`: `object`: Params passed to controller set by `yield-view` (only for initially view)
+* `yield-replace`: `boolean`: Cleares view stack when new view is pushed
+* `yield-inherit`: `boolean`: Determine scope inheriting by pushed view to yield
+
+#### Yield ID
+
+You can use main accessor without setting id - `ui-yield=""`. Then id `'main'` will be used. Identity 
+has to be unique through all application views, because yield is searched from view where is trigger (like `ui-route`) 
+up to application root view. This gives possibility to change parts of your application flexible from any point. 
+
+ID has to be unique in particular state of application. When view is dismiss you can again use yield with the same ID.
+
+#### Yield view stack
+
+Yield for default do not remove existings views, it appends new one at the end of node. To view only last one (on the top) 
+you have to write `css` like this: 
+
+```stylus
+[ui-yield] div 
+  display none
+  &:last-child
+    display block
+```
+
+Helper works similar to Android Activity Stack. State of your parent view is holded by browser, and when you close children view, 
+your parent will be in state that was before. But all views work in background. They still has connected data-binding 
+(big stack can slow down application).
+
+If your application is simple, you can use one `ui-yield` and push there your views. Create stack like this: 
+list -> show -> edit of some products. When you need some navigation, it can be other `ui-yield` put in root application view 
+or other place. Also modal with wizard pages can be separate `ui-yield` that has own views with other yields. 
+
+#### Templating in RoR way
+
+Similar to `ui-neck`, helper uses controller ID as `template` parameter in controller constructor. If you use `Neck.DI.commonjs` 
+you can leave template property `undefined` and Neck will search for template in right place for you. 
+
+#### Replace and refresh views
+
+When yield appends view, it searches if that view is already there. It uses controller ID pushed to `ui-route` or set 
+in `Neck.App` routes. If this view is in stack, helper cleares all children of it making this view last one in stack.
+
+Use `route-replace`, `replace` routes property or `yield-replace` to clear stack when new view is appended. Property set in `yi-yield` 
+have less importance (other properties overrides it). When you call a view that is in stack as root already, it will not refresh it, 
+only clear its children if they exists.
+
+Use `route-refresh` or `refresh` routes property to recreate view even is in yield. Refresh means that view is removed form yield 
+and put again (controller is initialized). 
+
+In some cases would be better to invoke some callback when view has to be refreshed (for example when user tirgger back action in browser).
+If there is `render:refresh` event in controller, it will be used instead rebuilding controller.
+
+#### Scope inheriting
+
+If you want to share some properties through different views, for example logged user credentials or some other global variables, 
+it is good to have them automatically, and `yeild-inherit` gives this functionality. Controller `scope` where 
+`ui-yield` is defined will be share (by controller inheritance) to all views pushed to stack. Common usage can be inheriting 
+main `ui-yield` set in root application controller where we can push some global things to `scope`.
+
+As it is described in scope section inheriting should be used carefully. Use yield inheritance when it is needed.
 
 ## Contribution
 
@@ -51,7 +964,7 @@ npm install && bower install
 
 Use `npm start` and go to your browser `http://localhost:3333/test/` for checking tests. 
 
-## Pull requests
+### Pull requests
 
 Write some changes, update tests and do pull request to this repository. Please provide 
 proper prefix to your commits: `BUG-FIX`, `TEST`, `DOCS`, `REFACTOR` and `NEW-FUNC`. It will be easier
@@ -60,4 +973,3 @@ to create changelog reading meaningful commits.
 ## License
 
 Neck is released under the [MIT License](https://raw.github.com/smalluban/neck/master/LICENSE)
-
