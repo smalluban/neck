@@ -1,11 +1,11 @@
 {
   "name": "neck",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "authors": [
     "smalluban"
   ],
   "description": "Create apps with Backbone faster!",
-  "main": "lib/neck.js",
+  "main": "dist/neck.js",
   "keywords": [
     "backbone",
     "backbonejs",

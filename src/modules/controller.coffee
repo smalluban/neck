@@ -2,6 +2,9 @@ class Neck.Controller extends Backbone.View
   # Check reverse parsing 
   @REVERSE_PARSING: $('<div ui-test1 ui-test2></div>')[0].attributes[0].name is 'ui-test2'
 
+  REGEXPS:
+    PROPERTY_SEPARATOR: /\.|\[.+\]\./
+
   divWrapper: true
   parseSelf: true
   template: undefined
@@ -43,6 +46,7 @@ class Neck.Controller extends Backbone.View
     super
 
     @trigger 'remove:after'
+    undefined
 
   clear: =>
     @off()
@@ -53,21 +57,31 @@ class Neck.Controller extends Backbone.View
     @trigger 'render:clear' # Remove childs listings
     @trigger 'render:before' 
 
+    @_onRender = true
+
     if @template
       unless typeof @template is 'function'
         if typeof (template = @injector.load(@template, type: 'template')) is 'function'
           template = template @scope
       else
         template = @template @scope
+
+      template = $(template)
+      @_parseNode el for el in (if @parseSelf then template else template.children())
           
       if @divWrapper
         @$el.html template
       else
-        @setElement $(template)
-    
-    @_parseNode el for el in (if @parseSelf then @$el else @$el.children())
+        @setElement template
+    else
+      @_parseNode el for el in (if @parseSelf then @$el else @$el.children())
 
-    @trigger 'render:after'
+    if @parent?._onRender
+      @listenToOnce @parent, 'render:after', -> @trigger 'render:after'
+    else
+      setTimeout => @trigger 'render:after'
+
+    @_onRender = false
     @
 
   _parseNode: (node)->
@@ -94,23 +108,17 @@ class Neck.Controller extends Backbone.View
     undefined
 
   _watch: (key, callback, context = @)->
-    shortKey = key.split('.')[0]
+    shortKey = key.split(@REGEXPS.PROPERTY_SEPARATOR)[0]
 
-    if @scope._resolves[key]
-      for resolve in @scope._resolves[key]
-        resolve.controller._watch resolve.key, callback, context
-      return
+    if @scope.hasOwnProperty(shortKey)
+      if Object.getOwnPropertyDescriptor(@scope, shortKey)?.get
+        return context.listenTo @, "refresh:#{key}", callback
     else
-      if @scope.hasOwnProperty(shortKey)
-        if Object.getOwnPropertyDescriptor(@scope, shortKey)?.get
-          context.listenTo @, "refresh:#{shortKey}", callback unless shortKey is key
-          return context.listenTo @, "refresh:#{key}", callback
-      else
-        controller = @
-        while controller = controller.parent
-          if controller.scope.hasOwnProperty shortKey
-            return controller._watch key, callback, context
-        undefined
+      controller = @
+      while controller = controller.parent
+        if controller.scope.hasOwnProperty shortKey
+          return controller._watch key, callback, context
+      undefined
 
     # Create get/set property for shortKey
     val = @scope[shortKey]
@@ -124,39 +132,49 @@ class Neck.Controller extends Backbone.View
       enumerable: true
       get: -> val
       set: (newVal)=>
-        if val instanceof Backbone.Model or val instanceof Backbone.Collection
-          @stopListening val
         if newVal instanceof Backbone.Model
+          @stopListening val
           @listenTo newVal, "change", => @apply shortKey
-        else if val instanceof Backbone.Collection  
+        else if newVal instanceof Backbone.Collection
+          @stopListening val
           @listenTo newVal, "add remove change", => @apply shortKey
           
         val = newVal
         @apply shortKey
     
-    context.listenTo @, "refresh:#{shortKey}", callback unless shortKey is key
     context.listenTo @, "refresh:#{key}", callback
+
+  _getter: (scope, evaluate, original)->
+    try
+      getter = new Function "scope", "__return = #{evaluate or undefined}; return __return;"
+    catch e
+      throw "#{e} in evaluating accessor '#{original or evaluate}'"
+
+    ()-> getter scope
+
+  _setter: (scope, evaluate, original)->
+    try
+      setter = new Function "scope, __newVal", "return #{evaluate} = __newVal;"
+    catch e
+      throw "#{e} in evaluating accessor '#{original or evaluate}'"
+    
+    (newValue)-> setter(scope, newValue)
 
   watch: (keys, callback, initCall = true)->
     keys = keys.split(' ')
-    call = => callback.apply @, _.map keys, (k)=> 
-      (new Function("__scope", "try { with (__scope) { return #{k}; } } catch(e) { return undefined; }"))(@scope, k)
+    call = => callback.apply @, _.map keys, (k)=> (@_getter(@scope, "scope.#{k}", k))()
 
     @_watch key, call for key in keys
     call() if initCall
 
   apply: (key)->
-    if @scope._resolves[key]
-      for resolve in @scope._resolves[key]
-        resolve.controller.trigger "refresh:#{resolve.key}"
-      undefined
-    else
+    unless @scope[key]
       controller = @
       while controller = controller.parent
         if controller.scope.hasOwnProperty(key)
           return controller.trigger "refresh:#{key}"
 
-      @trigger "refresh:#{key}"
+    @trigger "refresh:#{key}"
 
   route: (controller, options = {yield: 'main'})->
     throw "No yields list. You may call method from controller custructor?" unless @._yieldList

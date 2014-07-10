@@ -1,11 +1,8 @@
 class Neck.Helper extends Neck.Controller
-  REGEXPS:
-    TEXTS: /\'[^\']+\'/g
-    TEXTS_HASHED: /###/g
-    FUNCTION: /\(/
-    PROPERTIES: /\.?([a-zA-Z$_\@][^\,\ \[\]\:\{\}\(\)]*\(*)/g
+  REGEXPS: _.extend {}, Neck.Controller::REGEXPS,
+    PROPERTIES: /\'[^\']*\'|\"[^"]*\"|(\?\ *)*[\.a-zA-Z$_\@][^\ \'\"\{\}\(\):]*(\ *:)*(\'[^\']*\'|\"[^"]*\")*[^\ \'\"\{\}\(\):]*/g
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
-    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|this)($|\.|\ )/g
+    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|void|this)($|\.|\ )/g
   
   parseSelf: false
   orderPriority: 0
@@ -19,88 +16,108 @@ class Neck.Helper extends Neck.Controller
         if value = @el.attributes[Neck.Tools.camelToDash(attr)]?.value
           @_setAccessor attr, value
 
-  _parseValue: (s)->
-    s = s.trim()
-    texts = []
-    resolves = []
+  _propertyChain: (text)->
+    chain = []
+    part = ''
+    inside = false
 
-    # Replace texts for recognition
-    s = s.replace @REGEXPS.TEXTS, (t)-> 
-      texts.push t
-      "###"
+    for char in text
+      if char in ['"',"'"] then inside = !inside
+      unless inside then chain.push part if char in ['.', '[']
+      part += char
 
-    # Find scope properties
-    s = s.replace @REGEXPS.PROPERTIES, (t)=>
-      unless (sub = t.substr(0, 1)) is '@' 
-        unless sub is '.' or t.match(@REGEXPS.RESERVED_KEYWORDS)
-          resolves.push if t.match @REGEXPS.FUNCTION then t.split('.')[0] else t
+    chain.push part
+    chain
+
+  _createObjectChain: (obj, resolve, evaluate)->
+    chain = resolve.split('.')
+    param = chain.pop()
+    while part = chain.shift()
+      objName = part.split('[')[0]
+      unless obj[objName]
+        throw "Array has to be initialized for helper accessor: '#{evaluate}'" if part.match /\[/
+        obj[objName] = {}
+      return if (obj = obj[objName]) instanceof Array
+    unless obj.hasOwnProperty param
+      obj[param] or= undefined
+
+  _setAccessor: (key, evaluate)->
+    evaluate = evaluate.trim()
+    strict = false
+
+    listeners = []
+    triggers = []
+    parsedEvaluate = evaluate.replace @REGEXPS.PROPERTIES, (t)=>
+      unless (char = t.substr(0, 1)) is '@' 
+        if not(char in ['"', "'", '.', '?']) and not (t[t.length-1] is ':') and not t.match @REGEXPS.RESERVED_KEYWORDS
+          listeners.push.apply listeners, @_propertyChain t
+          triggers.push t
+          t = 'scope.' + t
+        else if char is "?"
+          t = t.split(/^\?\ */)[1]
+          if not(t[0] in ['"', "'"]) and not t.match @REGEXPS.RESERVED_KEYWORDS
+            listeners.push.apply listeners, @_propertyChain t
+            triggers.push t
+            t = 'scope.' + t
+          t = "? " + t
       else
-        t = '_context.' + t.substr(1)
+        t = 'scope._context.' + t.substr(1)
       t
- 
-    # Unreplace texts
-    if texts.length
-      s = s.replace @REGEXPS.TEXTS_HASHED, -> texts.shift()
 
-    [s, _.uniq(resolves)]
+    if listeners.length
+      triggers = _.uniq triggers
+      @scope._resolves[key] = listeners: [], triggers: []
+      for chain in _.uniq listeners
+        rootKey = chain.split(@REGEXPS.PROPERTY_SEPARATOR)[0]
+        controller = @
+        while controller = controller.parent
+          if controller.scope._resolves[chain]
+            @scope._resolves[key].listeners = _.union @scope._resolves[key].listeners, controller.scope._resolves[rootKey].listeners
+            @scope._resolves[key].triggers = _.union @scope._resolves[key].triggers, controller.scope._resolves[rootKey].triggers
+            break
+          if controller.scope.hasOwnProperty(rootKey)
+            @scope._resolves[key].listeners.push controller: controller, key: chain
+            @scope._resolves[key].triggers.push controller: controller, key: chain if chain in triggers and chain isnt rootKey
+            @_createObjectChain controller.scope, chain, evaluate
+            break
+          else unless controller.parent
+            @scope._resolves[key].listeners.push controller: @parent, key: chain
+            @scope._resolves[key].triggers.push controller: @parent, key: chain if chain in triggers and chain isnt rootKey
+            @_createObjectChain @parent.scope, chain, evaluate
 
-  _setAccessor: (key, value)->
-    strictValue = false
-    [value, resolves] = @_parseValue value
+    getter = @_getter(@parent.scope, parsedEvaluate, evaluate)
 
-    _getter = new Function "__scope", "with (__scope) { __return = #{value or undefined} } return __return"
- 
     options = 
       enumerable: true
-      get: => 
-        try
-          return value if strictValue
-          _getter.call window, @parent.scope
-        catch e
-          # console.warn "Getting '#{value}': #{e.message}"
-          undefined
+      get: -> if strict then parsedEvaluate else getter()
 
-    if value.match(@REGEXPS.ONLY_PROPERTY) and !value.match(@REGEXPS.RESERVED_KEYWORDS)
-      shortValueKey = value.split('.')[0]
-      _setter = new Function "__scope, __newVal", "with (__scope) { return #{value} = __newVal; };"
+    if parsedEvaluate.match(@REGEXPS.ONLY_PROPERTY) and !parsedEvaluate.match(@REGEXPS.RESERVED_KEYWORDS)
+      setter = @_setter(@parent.scope, parsedEvaluate, evaluate)
       options.set = (newVal)=>
-        _return = _setter.call window, @parent.scope, newVal
-        @parent.apply shortValueKey if shortValueKey isnt value
+        _return = setter newVal
+        @apply key
         _return
     else
       options.set = (newVal)=>
-        strictValue = true
-        _return = value = newVal
-        @apply key
+        strict = true
+        _return = parsedEvaluate = newVal
+        @trigger "refresh:#{key}"
         _return
 
     Object.defineProperty @scope, key, options
 
-    @scope._resolves[key] = []
-    for resolve in resolves
-      controller = @
-      while controller = controller.parent
-        if controller.scope._resolves[resolve]
-          @scope._resolves[key] = _.union @scope._resolves[key], @parent.scope._resolves[resolve]
-          break
-        if controller.scope.hasOwnProperty(resolve.split('.')[0])
-          @_addResolver key, controller, resolve
-          break
-        else unless controller.parent
-          @_addResolver key, @parent, resolve 
-          
-    # Clear when empty
-    unless @scope._resolves[key].length
-      @scope._resolves[key] = undefined
+  _watch: (key, callback, context = @)->
+    if @scope._resolves[key]
+      for listen in @scope._resolves[key].listeners
+        listen.controller._watch listen.key, callback, context
+      undefined
+    else 
+      super
 
-  _addResolver: (key, controller, resolve)->
-    @scope._resolves[key].push controller: controller, key: resolve
-
-    chain = resolve.split('.')
-    param = chain.pop()
-    obj = controller.scope
-    while objName = chain.shift()
-      obj[objName] = {} unless obj[objName]
-      obj = obj[objName]
-    unless obj.hasOwnProperty param
-      obj[param] or= undefined # Predefined property if is not set already
+  apply: (key)->
+    if @scope._resolves[key]
+      for trigger in @scope._resolves[key].triggers
+        trigger.controller.trigger "refresh:#{trigger.key}"
+      undefined
+    else
+      super

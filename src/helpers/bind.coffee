@@ -5,30 +5,51 @@ class Neck.Helper.bind extends Neck.Helper
 
   NUMBER: /^[0-9]+((\.|\,)?[0-9]+)*$/
 
-  events:
-    "keydown" : "update"
-    "change"  : "update"
-    "search"  : "update"
-
   isCheckbox: false
+  isInput: false
 
-  constructor: ->
+  constructor: (opts)->
     super
 
-    if @$el.is(':checkbox')
-      @isCheckbox = true
+    if @$el.is('input, textarea, select')
+      @isInput = true
+      @isCheckbox = true if @$el.is(':checkbox')
+    
+    @$el.on 'keydown change search', @updateValue
 
-    @watch '_main', ->
-      if @scope._main instanceof Backbone.Model 
-        throw 'Backbone.Model property required' unless @scope.bindProperty
-        throw 'Property has to be a string' unless typeof @scope.bindProperty is 'string'
+    @watch '_main', (value)->
+      if value instanceof Backbone.Model 
+        throw "Using Backbone.Model in 'ui-bind' requires 'bind-property'" unless @scope.bindProperty
+        throw "'bind-property' has to be a string" unless typeof @scope.bindProperty is 'string'
+        return if @model is value
+        @model = value
+        @listenTo @model, "change:#{@scope.bindProperty}", @updateView
+        @updateView()
+      else
+        if @model
+          @stopListening @model
+          @model = undefined
 
-      unless @_updated
-        if @isCheckbox
-          @$el.prop 'checked', @getValue()
-        else
-          @$el.val @getValue() or ''
-      @_updated = false
+        @updateView()
+      
+  updateView: =>
+    unless @isUpdated
+      value = if @model then @model.get(@scope.bindProperty) else @scope._main
+      if @isCheckbox
+        @$el.prop 'checked', !!value
+      else
+        value = if value is undefined then "" else value
+        if @isInput then @$el.val(value) else @$el.html(value)
+
+    @isUpdated = false
+
+  setValue: (value)->
+    @isUpdated = true
+    
+    if @model
+      @scope._main.set @scope.bindProperty, value
+    else
+      @scope._main = value 
 
   calculateValue: (s)->
     if s.match @NUMBER
@@ -36,26 +57,15 @@ class Neck.Helper.bind extends Neck.Helper
     else
       s
 
-  update: ->
+  updateValue: =>
     setTimeout =>
       # Exit timeout when controller is already destroy
       return unless @scope
 
-      if @isCheckbox
-        @setValue if @$el.is(':checked') then 1 else 0
+      if @isInput
+        if @isCheckbox
+          @setValue if @$el.is(':checked') then 1 else 0
+        else
+          @setValue @calculateValue @$el.val()
       else
-        @setValue @calculateValue @$el.val()
-
-  getValue: ->
-    if @scope._main instanceof Backbone.Model
-      @scope._main.get(@scope.bindProperty)
-    else
-      @scope._main
-
-  setValue: (value)->
-    @_updated = true
-    
-    if @scope._main instanceof Backbone.Model
-      @scope._main.set @scope.bindProperty, value
-    else
-      @scope._main = value 
+        @setValue @calculateValue @$el.html()

@@ -1,22 +1,23 @@
-class Neck.Helper.listItem extends Neck.Controller
-  divWrapper: false
-
-  constructor: (opts)->
-    super
-
-    @item = opts.item
-    
-    # Set own property
-    Object.defineProperty @scope, opts.itemName,
-      enumerable: true
-      writable: true
-      configurable: true
-      value: opts.item
-
-    # For iterating number in view
-    @scope._index = opts.index
-
 class Neck.Helper.list extends Neck.Helper
+  # Item Controller
+  class @ItemController extends Neck.Controller
+    divWrapper: false
+
+    constructor: (opts)->
+      super
+
+      @item = opts.item
+      
+      # Set own property
+      Object.defineProperty @scope, opts.itemName,
+        enumerable: true
+        writable: true
+        configurable: true
+        value: opts.item
+
+      # For iterating number in view
+      @scope._index = opts.index
+
   attributes: [
     'listItem',
     'listSort',
@@ -27,7 +28,7 @@ class Neck.Helper.list extends Neck.Helper
   ]
 
   template: true
-  itemController: Neck.Helper.listItem
+  itemController: @ItemController
 
   constructor: ->
     super
@@ -46,12 +47,12 @@ class Neck.Helper.list extends Neck.Helper
     @items = []
 
     @watch '_main', (@list)->
-      unless @list instanceof Array
-        return @resetItems() 
-      else
-        @resetItems()
-        @apply 'listSort' if @scope.listSort 
-        @apply 'listFilter' if @scope.listFilter
+      if @list and not (@list instanceof Array)
+        throw "'ui-list' main accessor has to be Array instance"
+
+      @resetItems()
+      @apply 'listSort' if @scope.listSort 
+      @apply 'listFilter' if @scope.listFilter
 
     @watch 'listSort', (sort)->
       if sort and @list
@@ -62,9 +63,8 @@ class Neck.Helper.list extends Neck.Helper
 
     @watch 'listFilter', (filter)->
       if filter or filter is ""
-        filter = new RegExp filter, "gi"
         for i in @items
-          if (i.item + "").match filter
+          if (item.model + "").toLowerCase().match filter.toLowerCase()
             i.$el.removeClass 'ui-hide'
           else
             i.$el.addClass 'ui-hide'

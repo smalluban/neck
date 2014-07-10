@@ -1,2 +1,0 @@
-// Closing wrapper
-return Neck; }));

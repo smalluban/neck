@@ -35,4 +35,4 @@ bower_components/
 test/bower_components/
 
 # Mocha tests
-lib/test/
+dist/test/

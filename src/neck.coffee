@@ -1,3 +1,5 @@
+Neck = window.Neck or= {}
+
 # Add "ui-hide" class
 $('''
   <style media="screen">
@@ -20,10 +22,10 @@ Neck.DI.globals =
         return destiny
       else
         if options.type isnt 'template'
-          return throw "No defined '#{route}' object in global scope"
+          return throw "Required '#{route}' object in global scope"
     catch
       if options.type isnt 'template'
-        return throw "No defined '#{route}' object in global scope"
+        return throw "Required '#{route}' object in global scope"
 
     route
 
@@ -35,11 +37,10 @@ Neck.DI.commonjs =
   _routePath: /^([a-zA-Z$_][a-zA-Z0-9$_\.]+\/?)+$/i
 
   load: (route, options)-> 
-    if route.match @_routePath
-      try
-        return require (if options.type then @[options.type + 'Prefix'] + "/" else '') + route
-      catch
-        if options.type isnt 'template'
-          return throw "No defined '#{route}' object for CommonJS dependency injection"
+    if options.type is 'template'
+      unless route.match @_routePath then return route
 
-    route
+    try
+      return require (if options.type then @[options.type + 'Prefix'] + "/" else '') + route
+    catch
+      return throw "Required '#{route}' object path for CommonJS dependency injection"

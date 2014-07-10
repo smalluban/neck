@@ -1,28 +1,7 @@
-// Opening wrapper 
-// Taken from backbonejs library
-(function(root, factory) {
+var Neck;
 
-  // Set up Neck appropriately for the environment. Start with AMD.
-  if (typeof define === 'function' && define.amd) {
-    define(['underscore', 'jquery', 'exports'], function(_, $, exports) {
-      // Export global even in AMD case in case this script is loaded with
-      // others that may still expect a global Neck.
-      root.Neck = factory(root, exports, _, $);
-    });
+Neck = window.Neck || (window.Neck = {});
 
-  // Next for Node.js or CommonJS. jQuery may not be needed as a module.
-  } else if (typeof exports !== 'undefined') {
-    var _ = require('underscore');
-    factory(root, exports, _);
-
-  // Finally, as a browser global.
-  } else {
-    root.Neck = factory(root, {}, root._, (root.jQuery || root.Zepto || root.ender || root.$));
-  }
-
-}(this, function(root, Neck, _, $) {
-
-;(function() {
 $('<style media="screen">\n  .ui-hide { display: none !important }\n</style>').appendTo($('head'));
 
 Neck.Tools = {
@@ -46,12 +25,12 @@ Neck.DI.globals = {
         return destiny;
       } else {
         if (options.type !== 'template') {
-          throw "No defined '" + route + "' object in global scope";
+          throw "Required '" + route + "' object in global scope";
         }
       }
     } catch (_error) {
       if (options.type !== 'template') {
-        throw "No defined '" + route + "' object in global scope";
+        throw "Required '" + route + "' object in global scope";
       }
     }
     return route;
@@ -64,24 +43,19 @@ Neck.DI.commonjs = {
   templatePrefix: 'templates',
   _routePath: /^([a-zA-Z$_][a-zA-Z0-9$_\.]+\/?)+$/i,
   load: function(route, options) {
-    if (route.match(this._routePath)) {
-      try {
-        return require((options.type ? this[options.type + 'Prefix'] + "/" : '') + route);
-      } catch (_error) {
-        if (options.type !== 'template') {
-          throw "No defined '" + route + "' object for CommonJS dependency injection";
-        }
+    if (options.type === 'template') {
+      if (!route.match(this._routePath)) {
+        return route;
       }
     }
-    return route;
+    try {
+      return require((options.type ? this[options.type + 'Prefix'] + "/" : '') + route);
+    } catch (_error) {
+      throw "Required '" + route + "' object path for CommonJS dependency injection";
+    }
   }
 };
-
-
-})();
-
-;(function() {
-var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+;var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -89,6 +63,10 @@ Neck.Controller = (function(_super) {
   __extends(Controller, _super);
 
   Controller.REVERSE_PARSING = $('<div ui-test1 ui-test2></div>')[0].attributes[0].name === 'ui-test2';
+
+  Controller.prototype.REGEXPS = {
+    PROPERTY_SEPARATOR: /\.|\[.+\]\./
+  };
 
   Controller.prototype.divWrapper = true;
 
@@ -135,7 +113,8 @@ Neck.Controller = (function(_super) {
     this.parent = void 0;
     this.scope = void 0;
     Controller.__super__.remove.apply(this, arguments);
-    return this.trigger('remove:after');
+    this.trigger('remove:after');
+    return void 0;
   };
 
   Controller.prototype.clear = function() {
@@ -145,9 +124,11 @@ Neck.Controller = (function(_super) {
   };
 
   Controller.prototype.render = function() {
-    var el, template, _i, _len, _ref;
+    var el, template, _i, _j, _len, _len1, _ref, _ref1, _ref2,
+      _this = this;
     this.trigger('render:clear');
     this.trigger('render:before');
+    this._onRender = true;
     if (this.template) {
       if (typeof this.template !== 'function') {
         if (typeof (template = this.injector.load(this.template, {
@@ -158,18 +139,34 @@ Neck.Controller = (function(_super) {
       } else {
         template = this.template(this.scope);
       }
+      template = $(template);
+      _ref = (this.parseSelf ? template : template.children());
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        el = _ref[_i];
+        this._parseNode(el);
+      }
       if (this.divWrapper) {
         this.$el.html(template);
       } else {
-        this.setElement($(template));
+        this.setElement(template);
+      }
+    } else {
+      _ref1 = (this.parseSelf ? this.$el : this.$el.children());
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        el = _ref1[_j];
+        this._parseNode(el);
       }
     }
-    _ref = (this.parseSelf ? this.$el : this.$el.children());
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      el = _ref[_i];
-      this._parseNode(el);
+    if ((_ref2 = this.parent) != null ? _ref2._onRender : void 0) {
+      this.listenToOnce(this.parent, 'render:after', function() {
+        return this.trigger('render:after');
+      });
+    } else {
+      setTimeout(function() {
+        return _this.trigger('render:after');
+      });
     }
-    this.trigger('render:after');
+    this._onRender = false;
     return this;
   };
 
@@ -226,36 +223,24 @@ Neck.Controller = (function(_super) {
   };
 
   Controller.prototype._watch = function(key, callback, context) {
-    var controller, resolve, shortKey, val, _i, _len, _ref, _ref1,
+    var controller, shortKey, val, _ref,
       _this = this;
     if (context == null) {
       context = this;
     }
-    shortKey = key.split('.')[0];
-    if (this.scope._resolves[key]) {
-      _ref = this.scope._resolves[key];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        resolve = _ref[_i];
-        resolve.controller._watch(resolve.key, callback, context);
+    shortKey = key.split(this.REGEXPS.PROPERTY_SEPARATOR)[0];
+    if (this.scope.hasOwnProperty(shortKey)) {
+      if ((_ref = Object.getOwnPropertyDescriptor(this.scope, shortKey)) != null ? _ref.get : void 0) {
+        return context.listenTo(this, "refresh:" + key, callback);
       }
-      return;
     } else {
-      if (this.scope.hasOwnProperty(shortKey)) {
-        if ((_ref1 = Object.getOwnPropertyDescriptor(this.scope, shortKey)) != null ? _ref1.get : void 0) {
-          if (shortKey !== key) {
-            context.listenTo(this, "refresh:" + shortKey, callback);
-          }
-          return context.listenTo(this, "refresh:" + key, callback);
+      controller = this;
+      while (controller = controller.parent) {
+        if (controller.scope.hasOwnProperty(shortKey)) {
+          return controller._watch(key, callback, context);
         }
-      } else {
-        controller = this;
-        while (controller = controller.parent) {
-          if (controller.scope.hasOwnProperty(shortKey)) {
-            return controller._watch(key, callback, context);
-          }
-        }
-        void 0;
       }
+      void 0;
     }
     val = this.scope[shortKey];
     if (val instanceof Backbone.Model) {
@@ -273,14 +258,13 @@ Neck.Controller = (function(_super) {
         return val;
       },
       set: function(newVal) {
-        if (val instanceof Backbone.Model || val instanceof Backbone.Collection) {
-          _this.stopListening(val);
-        }
         if (newVal instanceof Backbone.Model) {
+          _this.stopListening(val);
           _this.listenTo(newVal, "change", function() {
             return _this.apply(shortKey);
           });
-        } else if (val instanceof Backbone.Collection) {
+        } else if (newVal instanceof Backbone.Collection) {
+          _this.stopListening(val);
           _this.listenTo(newVal, "add remove change", function() {
             return _this.apply(shortKey);
           });
@@ -289,10 +273,33 @@ Neck.Controller = (function(_super) {
         return _this.apply(shortKey);
       }
     });
-    if (shortKey !== key) {
-      context.listenTo(this, "refresh:" + shortKey, callback);
-    }
     return context.listenTo(this, "refresh:" + key, callback);
+  };
+
+  Controller.prototype._getter = function(scope, evaluate, original) {
+    var e, getter;
+    try {
+      getter = new Function("scope", "__return = " + (evaluate || void 0) + "; return __return;");
+    } catch (_error) {
+      e = _error;
+      throw "" + e + " in evaluating accessor '" + (original || evaluate) + "'";
+    }
+    return function() {
+      return getter(scope);
+    };
+  };
+
+  Controller.prototype._setter = function(scope, evaluate, original) {
+    var e, setter;
+    try {
+      setter = new Function("scope, __newVal", "return " + evaluate + " = __newVal;");
+    } catch (_error) {
+      e = _error;
+      throw "" + e + " in evaluating accessor '" + (original || evaluate) + "'";
+    }
+    return function(newValue) {
+      return setter(scope, newValue);
+    };
   };
 
   Controller.prototype.watch = function(keys, callback, initCall) {
@@ -304,7 +311,7 @@ Neck.Controller = (function(_super) {
     keys = keys.split(' ');
     call = function() {
       return callback.apply(_this, _.map(keys, function(k) {
-        return (new Function("__scope", "try { with (__scope) { return " + k + "; } } catch(e) { return undefined; }"))(_this.scope, k);
+        return (_this._getter(_this.scope, "scope." + k, k))();
       }));
     };
     for (_i = 0, _len = keys.length; _i < _len; _i++) {
@@ -317,23 +324,16 @@ Neck.Controller = (function(_super) {
   };
 
   Controller.prototype.apply = function(key) {
-    var controller, resolve, _i, _len, _ref;
-    if (this.scope._resolves[key]) {
-      _ref = this.scope._resolves[key];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        resolve = _ref[_i];
-        resolve.controller.trigger("refresh:" + resolve.key);
-      }
-      return void 0;
-    } else {
+    var controller;
+    if (!this.scope[key]) {
       controller = this;
       while (controller = controller.parent) {
         if (controller.scope.hasOwnProperty(key)) {
           return controller.trigger("refresh:" + key);
         }
       }
-      return this.trigger("refresh:" + key);
     }
+    return this.trigger("refresh:" + key);
   };
 
   Controller.prototype.route = function(controller, options) {
@@ -364,25 +364,18 @@ Neck.Controller = (function(_super) {
   return Controller;
 
 })(Backbone.View);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+;var __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+  __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
 Neck.Helper = (function(_super) {
   __extends(Helper, _super);
 
-  Helper.prototype.REGEXPS = {
-    TEXTS: /\'[^\']+\'/g,
-    TEXTS_HASHED: /###/g,
-    FUNCTION: /\(/,
-    PROPERTIES: /\.?([a-zA-Z$_\@][^\,\ \[\]\:\{\}\(\)]*\(*)/g,
+  Helper.prototype.REGEXPS = _.extend({}, Neck.Controller.prototype.REGEXPS, {
+    PROPERTIES: /\'[^\']*\'|\"[^"]*\"|(\?\ *)*[\.a-zA-Z$_\@][^\ \'\"\{\}\(\):]*(\ *:)*(\'[^\']*\'|\"[^"]*\")*[^\ \'\"\{\}\(\):]*/g,
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g,
-    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|this)($|\.|\ )/g
-  };
+    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|void|this)($|\.|\ )/g
+  });
 
   Helper.prototype.parseSelf = false;
 
@@ -403,128 +396,188 @@ Neck.Helper = (function(_super) {
     }
   }
 
-  Helper.prototype._parseValue = function(s) {
-    var resolves, texts,
-      _this = this;
-    s = s.trim();
-    texts = [];
-    resolves = [];
-    s = s.replace(this.REGEXPS.TEXTS, function(t) {
-      texts.push(t);
-      return "###";
-    });
-    s = s.replace(this.REGEXPS.PROPERTIES, function(t) {
-      var sub;
-      if ((sub = t.substr(0, 1)) !== '@') {
-        if (!(sub === '.' || t.match(_this.REGEXPS.RESERVED_KEYWORDS))) {
-          resolves.push(t.match(_this.REGEXPS.FUNCTION) ? t.split('.')[0] : t);
-        }
-      } else {
-        t = '_context.' + t.substr(1);
+  Helper.prototype._propertyChain = function(text) {
+    var chain, char, inside, part, _i, _len;
+    chain = [];
+    part = '';
+    inside = false;
+    for (_i = 0, _len = text.length; _i < _len; _i++) {
+      char = text[_i];
+      if (char === '"' || char === "'") {
+        inside = !inside;
       }
-      return t;
-    });
-    if (texts.length) {
-      s = s.replace(this.REGEXPS.TEXTS_HASHED, function() {
-        return texts.shift();
-      });
+      if (!inside) {
+        if (char === '.' || char === '[') {
+          chain.push(part);
+        }
+      }
+      part += char;
     }
-    return [s, _.uniq(resolves)];
+    chain.push(part);
+    return chain;
   };
 
-  Helper.prototype._setAccessor = function(key, value) {
-    var controller, options, resolve, resolves, shortValueKey, strictValue, _getter, _i, _len, _ref, _setter,
-      _this = this;
-    strictValue = false;
-    _ref = this._parseValue(value), value = _ref[0], resolves = _ref[1];
-    _getter = new Function("__scope", "with (__scope) { __return = " + (value || void 0) + " } return __return");
-    options = {
-      enumerable: true,
-      get: function() {
-        var e;
-        try {
-          if (strictValue) {
-            return value;
-          }
-          return _getter.call(window, _this.parent.scope);
-        } catch (_error) {
-          e = _error;
-          return void 0;
-        }
-      }
-    };
-    if (value.match(this.REGEXPS.ONLY_PROPERTY) && !value.match(this.REGEXPS.RESERVED_KEYWORDS)) {
-      shortValueKey = value.split('.')[0];
-      _setter = new Function("__scope, __newVal", "with (__scope) { return " + value + " = __newVal; };");
-      options.set = function(newVal) {
-        var _return;
-        _return = _setter.call(window, _this.parent.scope, newVal);
-        if (shortValueKey !== value) {
-          _this.parent.apply(shortValueKey);
-        }
-        return _return;
-      };
-    } else {
-      options.set = function(newVal) {
-        var _return;
-        strictValue = true;
-        _return = value = newVal;
-        _this.apply(key);
-        return _return;
-      };
-    }
-    Object.defineProperty(this.scope, key, options);
-    this.scope._resolves[key] = [];
-    for (_i = 0, _len = resolves.length; _i < _len; _i++) {
-      resolve = resolves[_i];
-      controller = this;
-      while (controller = controller.parent) {
-        if (controller.scope._resolves[resolve]) {
-          this.scope._resolves[key] = _.union(this.scope._resolves[key], this.parent.scope._resolves[resolve]);
-          break;
-        }
-        if (controller.scope.hasOwnProperty(resolve.split('.')[0])) {
-          this._addResolver(key, controller, resolve);
-          break;
-        } else if (!controller.parent) {
-          this._addResolver(key, this.parent, resolve);
-        }
-      }
-    }
-    if (!this.scope._resolves[key].length) {
-      return this.scope._resolves[key] = void 0;
-    }
-  };
-
-  Helper.prototype._addResolver = function(key, controller, resolve) {
-    var chain, obj, objName, param;
-    this.scope._resolves[key].push({
-      controller: controller,
-      key: resolve
-    });
+  Helper.prototype._createObjectChain = function(obj, resolve, evaluate) {
+    var chain, objName, param, part;
     chain = resolve.split('.');
     param = chain.pop();
-    obj = controller.scope;
-    while (objName = chain.shift()) {
+    while (part = chain.shift()) {
+      objName = part.split('[')[0];
       if (!obj[objName]) {
+        if (part.match(/\[/)) {
+          throw "Array has to be initialized for helper accessor: '" + evaluate + "'";
+        }
         obj[objName] = {};
       }
-      obj = obj[objName];
+      if ((obj = obj[objName]) instanceof Array) {
+        return;
+      }
     }
     if (!obj.hasOwnProperty(param)) {
       return obj[param] || (obj[param] = void 0);
     }
   };
 
+  Helper.prototype._setAccessor = function(key, evaluate) {
+    var chain, controller, getter, listeners, options, parsedEvaluate, rootKey, setter, strict, triggers, _i, _len, _ref,
+      _this = this;
+    evaluate = evaluate.trim();
+    strict = false;
+    listeners = [];
+    triggers = [];
+    parsedEvaluate = evaluate.replace(this.REGEXPS.PROPERTIES, function(t) {
+      var char, _ref;
+      if ((char = t.substr(0, 1)) !== '@') {
+        if (!(char === '"' || char === "'" || char === '.' || char === '?') && !(t[t.length - 1] === ':') && !t.match(_this.REGEXPS.RESERVED_KEYWORDS)) {
+          listeners.push.apply(listeners, _this._propertyChain(t));
+          triggers.push(t);
+          t = 'scope.' + t;
+        } else if (char === "?") {
+          t = t.split(/^\?\ */)[1];
+          if (!((_ref = t[0]) === '"' || _ref === "'") && !t.match(_this.REGEXPS.RESERVED_KEYWORDS)) {
+            listeners.push.apply(listeners, _this._propertyChain(t));
+            triggers.push(t);
+            t = 'scope.' + t;
+          }
+          t = "? " + t;
+        }
+      } else {
+        t = 'scope._context.' + t.substr(1);
+      }
+      return t;
+    });
+    if (listeners.length) {
+      triggers = _.uniq(triggers);
+      this.scope._resolves[key] = {
+        listeners: [],
+        triggers: []
+      };
+      _ref = _.uniq(listeners);
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        chain = _ref[_i];
+        rootKey = chain.split(this.REGEXPS.PROPERTY_SEPARATOR)[0];
+        controller = this;
+        while (controller = controller.parent) {
+          if (controller.scope._resolves[chain]) {
+            this.scope._resolves[key].listeners = _.union(this.scope._resolves[key].listeners, controller.scope._resolves[rootKey].listeners);
+            this.scope._resolves[key].triggers = _.union(this.scope._resolves[key].triggers, controller.scope._resolves[rootKey].triggers);
+            break;
+          }
+          if (controller.scope.hasOwnProperty(rootKey)) {
+            this.scope._resolves[key].listeners.push({
+              controller: controller,
+              key: chain
+            });
+            if (__indexOf.call(triggers, chain) >= 0 && chain !== rootKey) {
+              this.scope._resolves[key].triggers.push({
+                controller: controller,
+                key: chain
+              });
+            }
+            this._createObjectChain(controller.scope, chain, evaluate);
+            break;
+          } else if (!controller.parent) {
+            this.scope._resolves[key].listeners.push({
+              controller: this.parent,
+              key: chain
+            });
+            if (__indexOf.call(triggers, chain) >= 0 && chain !== rootKey) {
+              this.scope._resolves[key].triggers.push({
+                controller: this.parent,
+                key: chain
+              });
+            }
+            this._createObjectChain(this.parent.scope, chain, evaluate);
+          }
+        }
+      }
+    }
+    getter = this._getter(this.parent.scope, parsedEvaluate, evaluate);
+    options = {
+      enumerable: true,
+      get: function() {
+        if (strict) {
+          return parsedEvaluate;
+        } else {
+          return getter();
+        }
+      }
+    };
+    if (parsedEvaluate.match(this.REGEXPS.ONLY_PROPERTY) && !parsedEvaluate.match(this.REGEXPS.RESERVED_KEYWORDS)) {
+      setter = this._setter(this.parent.scope, parsedEvaluate, evaluate);
+      options.set = function(newVal) {
+        var _return;
+        _return = setter(newVal);
+        _this.apply(key);
+        return _return;
+      };
+    } else {
+      options.set = function(newVal) {
+        var _return;
+        strict = true;
+        _return = parsedEvaluate = newVal;
+        _this.trigger("refresh:" + key);
+        return _return;
+      };
+    }
+    return Object.defineProperty(this.scope, key, options);
+  };
+
+  Helper.prototype._watch = function(key, callback, context) {
+    var listen, _i, _len, _ref;
+    if (context == null) {
+      context = this;
+    }
+    if (this.scope._resolves[key]) {
+      _ref = this.scope._resolves[key].listeners;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        listen = _ref[_i];
+        listen.controller._watch(listen.key, callback, context);
+      }
+      return void 0;
+    } else {
+      return Helper.__super__._watch.apply(this, arguments);
+    }
+  };
+
+  Helper.prototype.apply = function(key) {
+    var trigger, _i, _len, _ref;
+    if (this.scope._resolves[key]) {
+      _ref = this.scope._resolves[key].triggers;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        trigger = _ref[_i];
+        trigger.controller.trigger("refresh:" + trigger.key);
+      }
+      return void 0;
+    } else {
+      return Helper.__super__.apply.apply(this, arguments);
+    }
+  };
+
   return Helper;
 
 })(Neck.Controller);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   __slice = [].slice;
 
@@ -598,12 +651,7 @@ Neck.Router = (function(_super) {
   return Router;
 
 })(Backbone.Router);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.App = (function(_super) {
@@ -634,12 +682,7 @@ Neck.App = (function(_super) {
   return App;
 
 })(Neck.Controller);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper.attr = (function(_super) {
@@ -667,12 +710,8 @@ Neck.Helper.attr = (function(_super) {
   return attr;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper.bind = (function(_super) {
@@ -682,38 +721,71 @@ Neck.Helper.bind = (function(_super) {
 
   bind.prototype.NUMBER = /^[0-9]+((\.|\,)?[0-9]+)*$/;
 
-  bind.prototype.events = {
-    "keydown": "update",
-    "change": "update",
-    "search": "update"
-  };
-
   bind.prototype.isCheckbox = false;
 
-  function bind() {
+  bind.prototype.isInput = false;
+
+  function bind(opts) {
+    this.updateValue = __bind(this.updateValue, this);
+    this.updateView = __bind(this.updateView, this);
     bind.__super__.constructor.apply(this, arguments);
-    if (this.$el.is(':checkbox')) {
-      this.isCheckbox = true;
+    if (this.$el.is('input, textarea, select')) {
+      this.isInput = true;
+      if (this.$el.is(':checkbox')) {
+        this.isCheckbox = true;
+      }
     }
-    this.watch('_main', function() {
-      if (this.scope._main instanceof Backbone.Model) {
+    this.$el.on('keydown change search', this.updateValue);
+    this.watch('_main', function(value) {
+      if (value instanceof Backbone.Model) {
         if (!this.scope.bindProperty) {
-          throw 'Backbone.Model property required';
+          throw "Using Backbone.Model in 'ui-bind' requires 'bind-property'";
         }
         if (typeof this.scope.bindProperty !== 'string') {
-          throw 'Property has to be a string';
+          throw "'bind-property' has to be a string";
         }
-      }
-      if (!this._updated) {
-        if (this.isCheckbox) {
-          this.$el.prop('checked', this.getValue());
-        } else {
-          this.$el.val(this.getValue() || '');
+        if (this.model === value) {
+          return;
         }
+        this.model = value;
+        this.listenTo(this.model, "change:" + this.scope.bindProperty, this.updateView);
+        return this.updateView();
+      } else {
+        if (this.model) {
+          this.stopListening(this.model);
+          this.model = void 0;
+        }
+        return this.updateView();
       }
-      return this._updated = false;
     });
   }
+
+  bind.prototype.updateView = function() {
+    var value;
+    if (!this.isUpdated) {
+      value = this.model ? this.model.get(this.scope.bindProperty) : this.scope._main;
+      if (this.isCheckbox) {
+        this.$el.prop('checked', !!value);
+      } else {
+        value = value === void 0 ? "" : value;
+        if (this.isInput) {
+          this.$el.val(value);
+        } else {
+          this.$el.html(value);
+        }
+      }
+    }
+    return this.isUpdated = false;
+  };
+
+  bind.prototype.setValue = function(value) {
+    this.isUpdated = true;
+    if (this.model) {
+      return this.scope._main.set(this.scope.bindProperty, value);
+    } else {
+      return this.scope._main = value;
+    }
+  };
 
   bind.prototype.calculateValue = function(s) {
     if (s.match(this.NUMBER)) {
@@ -723,46 +795,28 @@ Neck.Helper.bind = (function(_super) {
     }
   };
 
-  bind.prototype.update = function() {
+  bind.prototype.updateValue = function() {
     var _this = this;
     return setTimeout(function() {
       if (!_this.scope) {
         return;
       }
-      if (_this.isCheckbox) {
-        return _this.setValue(_this.$el.is(':checked') ? 1 : 0);
+      if (_this.isInput) {
+        if (_this.isCheckbox) {
+          return _this.setValue(_this.$el.is(':checked') ? 1 : 0);
+        } else {
+          return _this.setValue(_this.calculateValue(_this.$el.val()));
+        }
       } else {
-        return _this.setValue(_this.calculateValue(_this.$el.val()));
+        return _this.setValue(_this.calculateValue(_this.$el.html()));
       }
     });
-  };
-
-  bind.prototype.getValue = function() {
-    if (this.scope._main instanceof Backbone.Model) {
-      return this.scope._main.get(this.scope.bindProperty);
-    } else {
-      return this.scope._main;
-    }
-  };
-
-  bind.prototype.setValue = function(value) {
-    this._updated = true;
-    if (this.scope._main instanceof Backbone.Model) {
-      return this.scope._main.set(this.scope.bindProperty, value);
-    } else {
-      return this.scope._main = value;
-    }
   };
 
   return bind;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper["class"] = (function(_super) {
@@ -786,50 +840,45 @@ Neck.Helper["class"] = (function(_super) {
   return _class;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
-
-Neck.Helper.collectionItem = (function(_super) {
-  __extends(collectionItem, _super);
-
-  collectionItem.prototype.divWrapper = false;
-
-  function collectionItem(opts) {
-    var _this = this;
-    collectionItem.__super__.constructor.apply(this, arguments);
-    this.model = opts.model;
-    Object.defineProperty(this.scope, opts.itemName, {
-      enumerable: true,
-      writable: true,
-      configurable: true,
-      value: opts.model
-    });
-    this.scope._index = opts.index;
-    if (opts.externalTemplate) {
-      this.listenTo(this.scope[opts.itemName], 'change', function() {
-        return _this.$el.replaceWith(_this.render().$el);
-      });
-    }
-  }
-
-  return collectionItem;
-
-})(Neck.Controller);
+;var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper.collection = (function(_super) {
   __extends(collection, _super);
+
+  collection.ItemController = (function(_super1) {
+    __extends(ItemController, _super1);
+
+    ItemController.prototype.divWrapper = false;
+
+    function ItemController(opts) {
+      var _this = this;
+      ItemController.__super__.constructor.apply(this, arguments);
+      this.model = opts.model;
+      Object.defineProperty(this.scope, opts.itemName, {
+        enumerable: true,
+        writable: true,
+        configurable: true,
+        value: opts.model
+      });
+      this.scope._index = opts.index;
+      if (opts.externalTemplate) {
+        this.listenTo(this.scope[opts.itemName], 'change', function() {
+          return _this.$el.replaceWith(_this.render().$el);
+        });
+      }
+    }
+
+    return ItemController;
+
+  })(Neck.Controller);
 
   collection.prototype.attributes = ['collectionItem', 'collectionSort', 'collectionFilter', 'collectionView', 'collectionEmpty', 'collectionController'];
 
   collection.prototype.template = true;
 
-  collection.prototype.itemController = Neck.Helper.collectionItem;
+  collection.prototype.itemController = collection.ItemController;
 
   function collection() {
     this.resetItems = __bind(this.resetItems, this);
@@ -854,6 +903,26 @@ Neck.Helper.collection = (function(_super) {
     }
     (_base = this.scope).collectionItem || (_base.collectionItem = 'item');
     this.items = [];
+    this.watch('_main', function(collection) {
+      if (collection && !(collection instanceof Backbone.Collection)) {
+        throw "'ui-collection' main accessor has to be Backbone.Collection instance";
+      }
+      if (collection === this.collection) {
+        return;
+      }
+      if (this.collection) {
+        this.stopListening(this.collection);
+      }
+      if (this.collection = collection) {
+        this.apply('collectionSort');
+        this.apply('collectionFilter');
+        this.listenTo(this.collection, "add", this.addItem);
+        this.listenTo(this.collection, "remove", this.removeItem);
+        this.listenTo(this.collection, "sort", this.sortItems);
+        this.listenTo(this.collection, "reset", this.resetItems);
+      }
+      return this.resetItems();
+    });
     this.watch('collectionSort', function(sort) {
       if (sort && this.collection) {
         this.collection.comparator = sort;
@@ -864,11 +933,10 @@ Neck.Helper.collection = (function(_super) {
       var item, _i, _j, _len, _len1, _ref, _ref1;
       if (filter || filter === "") {
         if (typeof filter === 'string') {
-          filter = new RegExp(filter, "gi");
           _ref = this.items;
           for (_i = 0, _len = _ref.length; _i < _len; _i++) {
             item = _ref[_i];
-            if ((item.model + "").match(filter)) {
+            if ((item.model + "").toLowerCase().match(filter.toLowerCase())) {
               item.$el.removeClass('ui-hide');
             } else {
               item.$el.addClass('ui-hide');
@@ -888,23 +956,6 @@ Neck.Helper.collection = (function(_super) {
           return void 0;
         }
       }
-    });
-    this.watch('_main', function(collection) {
-      if (collection === this.collection || !(collection instanceof Backbone.Collection)) {
-        return;
-      }
-      if (this.collection) {
-        this.stopListening(this.collection);
-      }
-      if (this.collection = collection) {
-        this.apply('collectionSort');
-        this.apply('collectionFilter');
-        this.listenTo(this.collection, "add", this.addItem);
-        this.listenTo(this.collection, "remove", this.removeItem);
-        this.listenTo(this.collection, "sort", this.sortItems);
-        this.listenTo(this.collection, "reset", this.resetItems);
-      }
-      return this.resetItems();
     });
   }
 
@@ -978,12 +1029,7 @@ Neck.Helper.collection = (function(_super) {
   return collection;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper.element = (function(_super) {
@@ -1003,12 +1049,7 @@ Neck.Helper.element = (function(_super) {
   return element;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-/* LIST OF EVENTS TO TRIGGER*/
+;/* LIST OF EVENTS TO TRIGGER*/
 
 var ER, Event, EventHelper, EventList, ev, helper, _i, _len, _ref,
   __hasProp = {}.hasOwnProperty,
@@ -1020,43 +1061,17 @@ EventHelper = (function(_super) {
   __extends(EventHelper, _super);
 
   function EventHelper(opts) {
+    var method;
     EventHelper.__super__.constructor.apply(this, arguments);
-    if (typeof this.scope._main === 'function') {
-      this.scope._main.call(this.scope._context, opts.e);
+    if (typeof (method = this.scope._main) === 'function') {
+      method.call(this.scope._context, opts.e);
     }
-    this.apply('_main');
-    this.off();
-    this.stopListening();
+    if (this.scope) {
+      this.apply('_main');
+      this.off();
+      this.stopListening();
+    }
   }
-
-  EventHelper.prototype._resolveKey = function(scope, keyChain) {
-    var key, keys, property;
-    keys = keyChain.split('.');
-    property = keys.pop();
-    while (key = keys.shift()) {
-      scope = scope[key];
-    }
-    return [scope, property];
-  };
-
-  EventHelper.prototype.apply = function(key) {
-    var index, newResolves, obj, resolve, _i, _len, _ref, _ref1, _ref2, _ref3;
-    if ((_ref = this.scope) != null ? _ref._resolves[key] : void 0) {
-      newResolves = [];
-      _ref1 = this.scope._resolves[key];
-      for (index = _i = 0, _len = _ref1.length; _i < _len; index = ++_i) {
-        resolve = _ref1[index];
-        _ref2 = this._resolveKey(resolve.controller.scope, resolve.key), obj = _ref2[0], key = _ref2[1];
-        if (!((_ref3 = Object.getOwnPropertyDescriptor(obj, key)) != null ? _ref3.get : void 0)) {
-          newResolves.push(resolve);
-        }
-      }
-      if (newResolves.length) {
-        this.scope._resolves[key] = newResolves;
-        return EventHelper.__super__.apply.apply(this, arguments);
-      }
-    }
-  };
 
   return EventHelper;
 
@@ -1099,12 +1114,7 @@ for (_i = 0, _len = EventList.length; _i < _len; _i++) {
   helper.prototype.eventType = ev;
   Neck.Helper[Neck.Tools.dashToCamel("event-" + ev)] = helper;
 }
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper.hide = (function(_super) {
@@ -1120,12 +1130,7 @@ Neck.Helper.hide = (function(_super) {
   return hide;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-var HrefHelper,
+;var HrefHelper,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -1159,12 +1164,7 @@ Neck.Helper.href = (function() {
   return href;
 
 })();
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper.init = (function(_super) {
@@ -1180,43 +1180,38 @@ Neck.Helper.init = (function(_super) {
   return init;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-Neck.Helper.listItem = (function(_super) {
-  __extends(listItem, _super);
-
-  listItem.prototype.divWrapper = false;
-
-  function listItem(opts) {
-    listItem.__super__.constructor.apply(this, arguments);
-    this.item = opts.item;
-    Object.defineProperty(this.scope, opts.itemName, {
-      enumerable: true,
-      writable: true,
-      configurable: true,
-      value: opts.item
-    });
-    this.scope._index = opts.index;
-  }
-
-  return listItem;
-
-})(Neck.Controller);
 
 Neck.Helper.list = (function(_super) {
   __extends(list, _super);
+
+  list.ItemController = (function(_super1) {
+    __extends(ItemController, _super1);
+
+    ItemController.prototype.divWrapper = false;
+
+    function ItemController(opts) {
+      ItemController.__super__.constructor.apply(this, arguments);
+      this.item = opts.item;
+      Object.defineProperty(this.scope, opts.itemName, {
+        enumerable: true,
+        writable: true,
+        configurable: true,
+        value: opts.item
+      });
+      this.scope._index = opts.index;
+    }
+
+    return ItemController;
+
+  })(Neck.Controller);
 
   list.prototype.attributes = ['listItem', 'listSort', 'listFilter', 'listView', 'listEmpty', 'listController'];
 
   list.prototype.template = true;
 
-  list.prototype.itemController = Neck.Helper.listItem;
+  list.prototype.itemController = list.ItemController;
 
   function list() {
     var controller;
@@ -1239,16 +1234,15 @@ Neck.Helper.list = (function(_super) {
     this.items = [];
     this.watch('_main', function(list) {
       this.list = list;
-      if (!(this.list instanceof Array)) {
-        return this.resetItems();
-      } else {
-        this.resetItems();
-        if (this.scope.listSort) {
-          this.apply('listSort');
-        }
-        if (this.scope.listFilter) {
-          return this.apply('listFilter');
-        }
+      if (this.list && !(this.list instanceof Array)) {
+        throw "'ui-list' main accessor has to be Array instance";
+      }
+      this.resetItems();
+      if (this.scope.listSort) {
+        this.apply('listSort');
+      }
+      if (this.scope.listFilter) {
+        return this.apply('listFilter');
       }
     });
     this.watch('listSort', function(sort) {
@@ -1270,11 +1264,10 @@ Neck.Helper.list = (function(_super) {
     this.watch('listFilter', function(filter) {
       var i, _i, _len, _ref;
       if (filter || filter === "") {
-        filter = new RegExp(filter, "gi");
         _ref = this.items;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           i = _ref[_i];
-          if ((i.item + "").match(filter)) {
+          if ((item.model + "").toLowerCase().match(filter.toLowerCase())) {
             i.$el.removeClass('ui-hide');
           } else {
             i.$el.addClass('ui-hide');
@@ -1320,12 +1313,7 @@ Neck.Helper.list = (function(_super) {
   return list;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-$(function() {
+;$(function() {
   return $('[ui-neck]').each(function() {
     var Controller, controller, el, injector, name;
     el = $(this);
@@ -1343,12 +1331,7 @@ $(function() {
     return controller.render();
   });
 });
-
-
-})();
-
-;(function() {
-var RouteHelper,
+;var RouteHelper,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -1386,12 +1369,7 @@ Neck.Helper.route = (function() {
   return route;
 
 })();
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper.show = (function(_super) {
@@ -1408,12 +1386,7 @@ Neck.Helper.show = (function(_super) {
   return show;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper.template = (function(_super) {
@@ -1434,12 +1407,7 @@ Neck.Helper.template = (function(_super) {
   return template;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper.value = (function(_super) {
@@ -1455,12 +1423,7 @@ Neck.Helper.value = (function(_super) {
   return value;
 
 })(Neck.Helper);
-
-
-})();
-
-;(function() {
-var __hasProp = {}.hasOwnProperty,
+;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Neck.Helper["yield"] = (function(_super) {
@@ -1575,10 +1538,5 @@ Neck.Helper["yield"] = (function(_super) {
   return _yield;
 
 })(Neck.Helper);
-
-
-})();
-
-;// Closing wrapper
-return Neck; }));
 ;
+//# sourceMappingURL=neck.js.map

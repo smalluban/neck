@@ -1,26 +1,27 @@
-class Neck.Helper.collectionItem extends Neck.Controller
-  divWrapper: false
-
-  constructor: (opts)->
-    super
-
-    @model = opts.model
-    
-    # Set own property
-    Object.defineProperty @scope, opts.itemName,
-      enumerable: true
-      writable: true
-      configurable: true
-      value: opts.model
-
-    # For iterating number in view
-    @scope._index = opts.index
-    
-    if opts.externalTemplate
-      @listenTo @scope[opts.itemName], 'change', => 
-        @$el.replaceWith @render().$el
-
 class Neck.Helper.collection extends Neck.Helper
+  # Item Controller
+  class @ItemController extends Neck.Controller
+    divWrapper: false
+
+    constructor: (opts)->
+      super
+
+      @model = opts.model
+      
+      # Set own property
+      Object.defineProperty @scope, opts.itemName,
+        enumerable: true
+        writable: true
+        configurable: true
+        value: opts.model
+
+      # For iterating number in view
+      @scope._index = opts.index
+      
+      if opts.externalTemplate
+        @listenTo @scope[opts.itemName], 'change', => 
+          @$el.replaceWith @render().$el
+
   attributes: [
     'collectionItem',
     'collectionSort',
@@ -31,7 +32,7 @@ class Neck.Helper.collection extends Neck.Helper
   ]
 
   template: true
-  itemController: Neck.Helper.collectionItem
+  itemController: @ItemController
 
   constructor: ->
     super
@@ -47,33 +48,13 @@ class Neck.Helper.collection extends Neck.Helper
         @itemController = controller
     
     @scope.collectionItem or= 'item'
-    @items = []
+    @items = [] 
 
-    @watch 'collectionSort', (sort)->
-      if sort and @collection
-        @collection.comparator = sort
-        @collection.sort()
-
-    @watch 'collectionFilter', (filter)->
-      if filter or filter is ""
-        if typeof filter is 'string'
-          filter = new RegExp filter, "gi"
-          for item in @items
-            if (item.model + "").match filter
-              item.$el.removeClass 'ui-hide'
-            else
-              item.$el.addClass 'ui-hide'
-          undefined
-        else if typeof filter is 'function'
-          for item in @items
-            if filter(item.model)
-              item.$el.removeClass 'ui-hide'
-            else
-              item.$el.addClass 'ui-hide'
-          undefined
-    
     @watch '_main', (collection)->
-      return if collection is @collection or not (collection instanceof Backbone.Collection)
+      if collection and not (collection instanceof Backbone.Collection)
+        throw "'ui-collection' main accessor has to be Backbone.Collection instance"
+      
+      return if collection is @collection
       @stopListening @collection if @collection
 
       if @collection = collection
@@ -86,6 +67,28 @@ class Neck.Helper.collection extends Neck.Helper
         @listenTo @collection, "reset", @resetItems
 
       @resetItems()
+
+    @watch 'collectionSort', (sort)->
+      if sort and @collection
+        @collection.comparator = sort
+        @collection.sort()
+
+    @watch 'collectionFilter', (filter)->
+      if filter or filter is ""
+        if typeof filter is 'string'
+          for item in @items
+            if (item.model + "").toLowerCase().match filter.toLowerCase()
+              item.$el.removeClass 'ui-hide'
+            else
+              item.$el.addClass 'ui-hide'
+          undefined
+        else if typeof filter is 'function'
+          for item in @items
+            if filter(item.model)
+              item.$el.removeClass 'ui-hide'
+            else
+              item.$el.addClass 'ui-hide'
+          undefined
 
   addItem: (model)=>
     @$el.empty() unless @items.length

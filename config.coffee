@@ -2,17 +2,11 @@ exports.config =
 
   modules:
     definition: false
-    wrapper: (path, data) ->
-      unless path.match /^wrappers/
-        "(function() {\n#{data}\n})();\n\n"
-      else
-        data
+    wrapper: false
 
   paths:
-    public: "lib/"
-    watched: ['src', 'wrappers', 'test', 'vendor']
-
-  sourceMaps: false
+    public: "dist"
+    watched: ['src', 'test']
 
   files:
     javascripts:
@@ -25,21 +19,13 @@ exports.config =
           'test/vendor/jquery-2.1.1.js'
           'test/vendor/mocha-1.14.0.js'
           'bower_components/underscore/underscore.js'
-          'wrappers/prefix.js'
           'src/neck.coffee'
           'src/modules/controller.coffee'
           'src/modules/helper.coffee'
           'src/modules/router.coffee'
           'src/modules/app.coffee'
         ]
-        after: [
-          'wrappers/suffix.js'
-        ]
 
     stylesheets:
       joinTo: 
         'test/style.css': /^test/
-
-  plugins:
-    javascript:
-      validate: false
