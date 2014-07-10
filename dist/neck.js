@@ -124,7 +124,7 @@ Neck.Controller = (function(_super) {
   };
 
   Controller.prototype.render = function() {
-    var el, template, _i, _j, _len, _len1, _ref, _ref1, _ref2,
+    var children, el, template, _i, _j, _len, _len1, _ref, _ref1, _ref2,
       _this = this;
     this.trigger('render:clear');
     this.trigger('render:before');
@@ -140,7 +140,7 @@ Neck.Controller = (function(_super) {
         template = this.template(this.scope);
       }
       template = $(template);
-      _ref = (this.parseSelf ? template : template.children());
+      _ref = (this.parseSelf ? template : ((children = template.children().length) ? children : template));
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         el = _ref[_i];
         this._parseNode(el);
@@ -151,7 +151,7 @@ Neck.Controller = (function(_super) {
         this.setElement(template);
       }
     } else {
-      _ref1 = (this.parseSelf ? this.$el : this.$el.children());
+      _ref1 = (this.parseSelf ? this.$el : ((children = this.$el.children().length) ? children : this.$el));
       for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
         el = _ref1[_j];
         this._parseNode(el);
