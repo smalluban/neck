@@ -67,14 +67,14 @@ class Neck.Controller extends Backbone.View
         template = @template @scope
 
       template = $(template)
-      @_parseNode el for el in (if @parseSelf then template else template.children())
+      @_parseNode el for el in (if @parseSelf then template else (if (children = template.children().length) then children else template))
           
       if @divWrapper
         @$el.html template
       else
         @setElement template
     else
-      @_parseNode el for el in (if @parseSelf then @$el else @$el.children())
+      @_parseNode el for el in (if @parseSelf then @$el else (if (children = @$el.children().length) then children else @$el))
 
     if @parent?._onRender
       @listenToOnce @parent, 'render:after', -> @trigger 'render:after'

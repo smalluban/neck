@@ -20,9 +20,9 @@
   ],
   "scripts": {
     "start": "brunch watch --server",
-    "build": "brunch build",
-    "test": "brunch build && ./node_modules/.bin/mocha-phantomjs lib/test/index.html && ./node_modules/.bin/poncho --reporter lcov lib/test/index.html | ./node_modules/.bin/coveralls",
-    "test-mocha": "brunch build && ./node_modules/.bin/mocha-phantomjs lib/test/index.html"
+    "build": "brunch build",  
+    "test": "brunch build && ./node_modules/.bin/mocha-phantomjs dist/test/index.html && ./node_modules/.bin/poncho --reporter lcov dist/test/index.html | ./node_modules/.bin/coveralls",
+    "test-mocha": "brunch build && ./node_modules/.bin/mocha-phantomjs dist/test/index.html"
   },
   "dependencies": {
     "javascript-brunch": "<= 1.8",

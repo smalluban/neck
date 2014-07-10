@@ -92,7 +92,7 @@ describe 'Controller', ->
       assert.equal controller.template, "<p>Some text</p>"
       assert.equal controller.el.outerHTML, "<div><p>Some text</p></div>"
 
-    describe "'parseSelf' property tests", ->
+  describe "'parseSelf' property tests", ->
 
     # Set to true will trigger parsing proccess within root node, false set to
     # parse only childrens of controller root node.
@@ -111,7 +111,7 @@ describe 'Controller', ->
       controller.render()
 
       assert.ok spy.calledOnce
-      assert.equal spy.args[0][0].outerHTML, "<div><p>This is text</p></div>"
+      assert.equal spy.args[0][0].outerHTML, "<p>This is text</p>"
 
     it "should parse only children of root node when parseSelf is false", ->
       class Controller extends Neck.Controller
@@ -359,7 +359,7 @@ describe 'Controller', ->
 
   describe "render template", ->
 
-    it "should trigger proper events", ->
+    it "should trigger proper events", (done)->
       controller = new Neck.Controller()
       spyBefore = sinon.spy()
       spyClear = sinon.spy()
@@ -371,11 +371,13 @@ describe 'Controller', ->
 
       controller.render()
 
-      assert.ok spyBefore.calledOnce
-      assert.ok spyClear.calledOnce
-      assert.ok spyParsing.calledOnce
-      assert.ok spyAfter.calledOnce
+      setTimeout =>
+        assert.ok spyBefore.calledOnce
+        assert.ok spyClear.calledOnce
+        assert.ok spyParsing.calledOnce
+        assert.ok spyAfter.calledOnce
 
-      assert.ok spyParsing.calledAfter spyBefore
-      assert.ok spyParsing.calledAfter spyClear
-      assert.ok spyAfter.calledAfter spyParsing
+        assert.ok spyParsing.calledAfter spyBefore
+        assert.ok spyParsing.calledAfter spyClear
+        assert.ok spyAfter.calledAfter spyParsing
+        done()
