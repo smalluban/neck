@@ -41,7 +41,7 @@ div(ui-neck="'MyController'")
   button(
     ui-event-click="models.add({name: newItemName}); newItemName = ''"
     ui-attr="{ disabled: !newItemName }"
-  )
+  ) Add todo
 ```
 
 ## Setup
@@ -406,13 +406,13 @@ class Helper exteds Neck.Helper
       console.log "new value of helper: #{value}"
 ```
 ```jade
-div(ui-helper=" + 2 + someProperty + one(thirdProperty) + 'otherValue' + secondProperty")
+div(ui-helper="2 + someProperty + one(thirdProperty) + 'otherValue' + secondProperty")
 ```
 
 In this example helper `scope._main` depends on `someProperty`, `secondProperty` and `thirdProperty` of `controller.scope`. 
 Changing deep properties in called function will not trigger accessor change (root properties has own getter/setter and triggers changes). 
 You have to call function with deep property as parameter, for example: `someAction(property.deepProperty)`. 
-You can also manually invoke `@apply('property.deepProperty') inside controller function.
+You can also manually invoke `@apply('property.deepProperty') inside controller method.
 
 Mapping works with deep properites:
 
