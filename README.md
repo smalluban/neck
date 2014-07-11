@@ -40,7 +40,7 @@ div(ui-neck="'MyController'")
   input(ui-bind="newItemName")
   button(
     ui-event-click="models.add({name: newItemName}); newItemName = ''"
-    ui-attr="{'disabled': !newItemName}"
+    ui-attr="{ disabled: !newItemName }"
   )
 ```
 
@@ -548,7 +548,7 @@ dependency injection `load` method is called:
 `load` method should take first argument as ID of fetching object, second arguments is options object. For now library calls
 that method with options set to `type: 'controller|helper|template'`.
 
-`Neck` supports out of the box two modules: `Neck.DI.globals` and `Neck.DI.commonjs`. For default `Neck` uses `globals`. You can write your own manager (or extends existing) to work with your project setup.
+`Neck` supports out of the box two modules: `Neck.DI.globals` and `Neck.DI.commonjs`. For default `Neck` uses `globals`. You can write your own manager (or extends existing) to work with your project setup. When you use `ui-neck` helper put your manager into `Neck.DI` container.
 
 ### Neck.DI.globals
 
@@ -588,7 +588,7 @@ so they react automatically to actual state of controller `scope`.
 ### ui-attr
 
 ```jade
-div(ui-attr="{'id': someProperty, 'disabled': inputRead == 'something' }")
+div(ui-attr="{ id: someProperty, disabled: inputRead == 'something' }")
 ```
 
 Set collection of attributes. Main accessor should be a `object` with `key` and `value` pairs. Key name is used 
@@ -627,7 +627,7 @@ method, writing `'<span>something<span>'` will be displayed as it is. Use it if 
 ### ui-class
 
 ```jade
-div(ui-class="{'selected': index == 1, 'moving': someAction(property)}")
+div(ui-class="{ selected: index == 1, moving: someAction(property)}")
 ```
 
 Set collection of classes. Main accessor should be a `object` with `key` and `value` pairs. Key name is used as class
@@ -843,7 +843,7 @@ div(ui-neck="'controllerName'", neck-injector="'commonjs'")
 This helper is not real `Neck.Helper` instance. It is ordinary jQuery method invoke when document is ready. 
 For coherence in library, helpers name convention is used. Main accessor should point to your root controller.
 
-Set `neck-injector` as name of `Neck.DI` dependency injector you want to use. It will be inherit through all
+Set `neck-injector` as name of one of dependency injector in `Neck.DI` container you want to use. It will be inherit through all
 controllers and helpers.
 
 `ui-neck` uses RoR convention to use controller name as path to template. It constructs controller passing `template`
@@ -856,7 +856,7 @@ To avoid reusing helper when controller is render, `ui-neck` attribute is remove
 ### ui-route
 
 ```jade
-a(ui-route="'someController'", route-yield="'main'", route-params="{'item': someItem }" ... )
+a(ui-route="'someController'", route-yield="'main'", route-params="{ item: someItem }" ... )
 ```
 
 Helper pushes controller to `ui-yield` on click. Main accessor should be `string` controller ID. Helper uses accessors:
