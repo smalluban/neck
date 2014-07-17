@@ -21,7 +21,7 @@
   "scripts": {
     "start": "brunch watch --server",
     "build": "brunch build",  
-    "test": "brunch build && ./node_modules/.bin/mocha-phantomjs dist/test/index.html && ./node_modules/.bin/poncho --reporter lcov dist/test/index.html | ./node_modules/.bin/coveralls",
+    "test": "brunch build && ./node_modules/.bin/mocha-phantomjs dist/test/index.html && ./node_modules/.bin/poncho -R lcov dist/test/index.html | ./node_modules/coveralls/bin/coveralls.js",
     "test-mocha": "brunch build && ./node_modules/.bin/mocha-phantomjs dist/test/index.html"
   },
   "dependencies": {
@@ -33,6 +33,6 @@
     "clean-css-brunch": "<= 1.8.0",
     "mocha-phantomjs": "~3.1.6",
     "poncho": "~0.1.1",
-    "coveralls": "~2.10.0"
+    "coveralls": "~2.11.1"
   }
 }
