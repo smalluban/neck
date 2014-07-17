@@ -9,7 +9,7 @@ $('''
 
 Neck.Tools =
   dashToCamel: (str)-> str.replace /\W+(.)/g, (x, chr)-> chr.toUpperCase()
-  camelToDash: (str)-> str.replace(/\W+/g, '-').replace(/([a-z\d])([A-Z])/g, '$1-$2')
+  camelToDash: (str)-> str.replace(/\W+/g, '-').replace(/([a-z\d])([A-Z])/g, '$1-$2').toLowerCase()
 
 # Dependency injectors container
 Neck.DI = {}

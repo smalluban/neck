@@ -20,7 +20,7 @@ class Neck.Controller extends Backbone.View
 
     # Listen to parent events
     if @parent
-      @listenTo @parent, 'render:clear', @clear
+      @listenTo @parent, 'render:before', @remove 
       @listenTo @parent, 'remove:before', @remove
 
       # Inherit injector
@@ -48,13 +48,7 @@ class Neck.Controller extends Backbone.View
     @trigger 'remove:after'
     undefined
 
-  clear: =>
-    @off()
-    @stopListening()
-    @trigger 'render:clear'
-
   render: ->
-    @trigger 'render:clear' # Remove childs listings
     @trigger 'render:before' 
 
     @_onRender = true
@@ -67,14 +61,14 @@ class Neck.Controller extends Backbone.View
         template = @template @scope
 
       template = $(template)
-      @_parseNode el for el in (if @parseSelf then template else (if (children = template.children().length) then children else template))
+      @_parseNode el for el in template
           
       if @divWrapper
         @$el.html template
       else
         @setElement template
     else
-      @_parseNode el for el in (if @parseSelf then @$el else (if (children = @$el.children().length) then children else @$el))
+      @_parseNode el for el in unless @parseSelf then @$el.children() else @$el
 
     if @parent?._onRender
       @listenToOnce @parent, 'render:after', -> @trigger 'render:after'

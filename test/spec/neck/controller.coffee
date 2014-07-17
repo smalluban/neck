@@ -357,27 +357,85 @@ describe 'Controller', ->
       delete Neck.Helper['firstHelper']
       delete Neck.Helper['secondHelper']
 
+  describe "removing controller", ->
+    it "should trigger proper events", ->
+      controller = new Neck.Controller()
+      spyBefore = sinon.spy()
+      spyAfter = sinon.spy()
+      controller.on 'remove:before', spyBefore
+      controller.on 'remove:after', spyAfter
+
+      controller.remove()
+
+      assert.ok spyBefore.calledOnce
+      assert.ok spyAfter.calledOnce
+
+    it "clears reference to parent and scope", ->
+      controller = new Neck.Controller()
+      controller.parent = {}
+
+      controller.remove()
+      assert.isUndefined controller.parent
+      assert.isUndefined controller.scope
+
   describe "render template", ->
 
     it "should trigger proper events", (done)->
       controller = new Neck.Controller()
       spyBefore = sinon.spy()
-      spyClear = sinon.spy()
       spyAfter = sinon.spy()
       spyParsing = sinon.spy controller, '_parseNode'
       controller.on 'render:before', spyBefore
-      controller.on 'render:clear', spyClear
       controller.on 'render:after', spyAfter
 
       controller.render()
 
       setTimeout =>
         assert.ok spyBefore.calledOnce
-        assert.ok spyClear.calledOnce
         assert.ok spyParsing.calledOnce
         assert.ok spyAfter.calledOnce
 
         assert.ok spyParsing.calledAfter spyBefore
-        assert.ok spyParsing.calledAfter spyClear
         assert.ok spyAfter.calledAfter spyParsing
         done()
+
+    it "should use template function", ->
+      controller = new Neck.Controller()
+      controller.template = sinon.spy()
+
+      controller.render()
+      assert.ok controller.template.called
+      assert.ok controller.template.calledWith controller.scope
+
+    it "shuld use DI when template ID is given", ->
+      spy = sinon.spy()
+      controller = new Neck.Controller template: 'asd'
+      controller.injector = load: -> return spy
+
+      controller.render()
+      assert.ok spy.called
+      assert.ok spy.calledWith controller.scope
+
+    it "should listen to parent 'render:after'", (done)->
+      spyBefore = sinon.spy()
+      spyAfter = sinon.spy()
+      class Helper extends Neck.Helper
+        template: true
+        constructor: ->
+          super
+          @on 'render:after', -> spyAfter()
+          @render()
+
+      c1 = new Neck.Controller()
+      c1.template = -> '<p ui-some-helper=""></p>'
+      c1.injector = load: -> Helper
+      c1.on 'render:after', -> spyBefore()
+      c1.render()
+
+      setTimeout ->
+        assert.ok spyBefore.called
+        assert.ok spyAfter.called
+        assert.ok spyBefore.calledBefore spyAfter
+
+        done()
+
