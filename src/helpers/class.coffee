@@ -7,5 +7,5 @@ class Neck.Helper.class extends Neck.Helper
 
     @watch '_main', (main)->
       for key, value of main
-        @$el.toggleClass key, if value then true else false
+        @$el.toggleClass key, !!value
       undefined
