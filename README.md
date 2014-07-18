@@ -4,7 +4,7 @@
 
 Neck is a library that adds number of features to Backbone.js:
 
-* Events driven two way data-binding between controller and view (no dirty checking)
+* Event driven data-binding between controller and view (no dirty checking)
 * Simple dependeny injection module working with CommonJS out of the box
 * Templating working with any JavaScript template engine
 * Over a dozen helpers for view logic:
@@ -18,8 +18,8 @@ Neck is a library that adds number of features to Backbone.js:
 ## Overview
 
 Library is inspired (in convention and code) by frameworks [Angular](http://angularjs.org/) and 
-[Batman](http://batmanjs.org/). Neck is not separete framework. It extends Backbone.js framework 
-functionality. You can use it with many other plug-ins and libraries created for Backbone.js.
+[Batman](http://batmanjs.org/). Neck is not separete framework. It extends Backbone.js functionality. 
+You can use it with many other plug-ins and libraries created for Backbone.js.
 
 Simple todo application could looks like this:
 
