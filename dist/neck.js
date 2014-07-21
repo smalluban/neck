@@ -1421,6 +1421,56 @@ Neck.Helper.value = (function(_super) {
 ;var __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
+Neck.Helper.view = (function(_super) {
+  __extends(view, _super);
+
+  view.prototype.template = true;
+
+  view.prototype.attributes = ['viewParams', 'viewInherit'];
+
+  view.prototype.id = null;
+
+  function view() {
+    view.__super__.constructor.apply(this, arguments);
+    this.watch('_main', function(newId) {
+      var Controller;
+      if (newId && !(typeof newId === 'string')) {
+        throw "'ui-view' main accessor has to be string controller ID";
+      }
+      if (newId === this.id) {
+        return;
+      }
+      this.$el.empty();
+      if (this.view) {
+        this.view.$el = $();
+        this.view.remove();
+      }
+      if (this.id = newId) {
+        Controller = this.injector.load(this.id, {
+          type: 'controller'
+        });
+        this.view = new Controller({
+          el: this.$el,
+          params: this.scope.viewParams,
+          template: this.id,
+          parent: this.scope.viewInherit ? this.parent : void 0
+        });
+        if (this.scope.viewInherit) {
+          this.view.scope._context = this.view;
+        }
+        this.view.injector = this.injector;
+        this.view.parseSelf = false;
+        return this.view.render();
+      }
+    });
+  }
+
+  return view;
+
+})(Neck.Helper);
+;var __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
 Neck.Helper["yield"] = (function(_super) {
   __extends(_yield, _super);
 

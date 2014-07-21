@@ -2,7 +2,7 @@
   "name": "neck",
   "description": "Create apps with Backbone faster!",
   "author": "smalluban",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "repository": {
     "type": "git",
     "url": "http://github.com/smalluban/neck.git"
