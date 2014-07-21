@@ -146,7 +146,11 @@ class Neck.Controller extends Backbone.View
     catch e
       throw "#{e} in evaluating accessor '#{original or evaluate}'"
 
-    ()-> getter scope
+    ()-> 
+      try
+        getter scope
+      catch e
+        throw "#{e} in running accessor '#{original or evaluate}'" 
 
   _setter: (scope, evaluate, original)->
     try
@@ -154,7 +158,11 @@ class Neck.Controller extends Backbone.View
     catch e
       throw "#{e} in evaluating accessor '#{original or evaluate}'"
     
-    (newValue)-> setter(scope, newValue)
+    (newValue)-> 
+      try
+        setter(scope, newValue)
+      catch e
+        throw "#{e} in running accessor '#{original or evaluate}'"
 
   watch: (keys, callback, initCall = true)->
     keys = keys.split(' ')
