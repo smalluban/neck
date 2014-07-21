@@ -11,7 +11,7 @@ Neck.Tools = {
     });
   },
   camelToDash: function(str) {
-    return str.replace(/\W+/g, '-').replace(/([a-z\d])([A-Z])/g, '$1-$2');
+    return str.replace(/\W+/g, '-').replace(/([a-z\d])([A-Z])/g, '$1-$2').toLowerCase();
   }
 };
 
@@ -81,7 +81,6 @@ Neck.Controller = (function(_super) {
     if (opts == null) {
       opts = {};
     }
-    this.clear = __bind(this.clear, this);
     this.remove = __bind(this.remove, this);
     Controller.__super__.constructor.apply(this, arguments);
     scope = (this.parent = opts.parent) ? Object.create(this.parent.scope) : {
@@ -91,7 +90,7 @@ Neck.Controller = (function(_super) {
       _resolves: {}
     });
     if (this.parent) {
-      this.listenTo(this.parent, 'render:clear', this.clear);
+      this.listenTo(this.parent, 'render:before', this.remove);
       this.listenTo(this.parent, 'remove:before', this.remove);
       this.injector = this.parent.injector;
     }
@@ -117,16 +116,9 @@ Neck.Controller = (function(_super) {
     return void 0;
   };
 
-  Controller.prototype.clear = function() {
-    this.off();
-    this.stopListening();
-    return this.trigger('render:clear');
-  };
-
   Controller.prototype.render = function() {
-    var children, el, template, _i, _j, _len, _len1, _ref, _ref1, _ref2,
+    var el, template, _i, _j, _len, _len1, _ref, _ref1,
       _this = this;
-    this.trigger('render:clear');
     this.trigger('render:before');
     this._onRender = true;
     if (this.template) {
@@ -140,9 +132,8 @@ Neck.Controller = (function(_super) {
         template = this.template(this.scope);
       }
       template = $(template);
-      _ref = (this.parseSelf ? template : ((children = template.children().length) ? children : template));
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        el = _ref[_i];
+      for (_i = 0, _len = template.length; _i < _len; _i++) {
+        el = template[_i];
         this._parseNode(el);
       }
       if (this.divWrapper) {
@@ -151,13 +142,13 @@ Neck.Controller = (function(_super) {
         this.setElement(template);
       }
     } else {
-      _ref1 = (this.parseSelf ? this.$el : ((children = this.$el.children().length) ? children : this.$el));
-      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-        el = _ref1[_j];
+      _ref = !this.parseSelf ? this.$el.children() : this.$el;
+      for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+        el = _ref[_j];
         this._parseNode(el);
       }
     }
-    if ((_ref2 = this.parent) != null ? _ref2._onRender : void 0) {
+    if ((_ref1 = this.parent) != null ? _ref1._onRender : void 0) {
       this.listenToOnce(this.parent, 'render:after', function() {
         return this.trigger('render:after');
       });
@@ -202,7 +193,7 @@ Neck.Controller = (function(_super) {
       }
       for (_j = 0, _len1 = buffer.length; _j < _len1; _j++) {
         item = buffer[_j];
-        if (item.controller.prototype.template) {
+        if (item.controller.prototype.template !== void 0) {
           stop = true;
         }
         new item.controller({
@@ -325,7 +316,7 @@ Neck.Controller = (function(_super) {
 
   Controller.prototype.apply = function(key) {
     var controller;
-    if (!this.scope[key]) {
+    if (!this.scope.hasOwnProperty(key)) {
       controller = this;
       while (controller = controller.parent) {
         if (controller.scope.hasOwnProperty(key)) {
@@ -831,7 +822,7 @@ Neck.Helper["class"] = (function(_super) {
       var key, value;
       for (key in main) {
         value = main[key];
-        this.$el.toggleClass(key, value ? true : false);
+        this.$el.toggleClass(key, !!value);
       }
       return void 0;
     });
@@ -1078,8 +1069,6 @@ EventHelper = (function(_super) {
 })(Neck.Helper);
 
 Event = (function() {
-  Event.prototype.template = false;
-
   function Event(options) {
     var _this = this;
     if (options.el[0].tagName === 'A') {
@@ -1123,7 +1112,7 @@ Neck.Helper.hide = (function(_super) {
   function hide() {
     hide.__super__.constructor.apply(this, arguments);
     this.watch('_main', function(value) {
-      return this.$el.toggleClass('ui-hide', value ? true : false);
+      return this.$el.toggleClass('ui-hide', !!value);
     });
   }
 
@@ -1379,7 +1368,7 @@ Neck.Helper.show = (function(_super) {
     show.__super__.constructor.apply(this, arguments);
     this.$el.addClass('ui-hide');
     this.watch('_main', function(value) {
-      return this.$el.toggleClass('ui-hide', !value ? true : false);
+      return this.$el.toggleClass('ui-hide', !!!value);
     });
   }
 

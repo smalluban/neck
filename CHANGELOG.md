@@ -1,6 +1,6 @@
-# 0.2.6
+# 0.3.2
 
-First usable version with documentation.
+* Minor bug-fixes
 
 # 0.3.0
 
@@ -14,3 +14,7 @@ Conflict changes:
 
 * Path to compiled library changed from `lib/` to `dist/`
 * `ui-bind` push value method changed to `html()`
+
+# 0.2.6
+
+First usable version with documentation.
