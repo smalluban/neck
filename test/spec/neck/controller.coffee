@@ -110,8 +110,9 @@ describe 'Controller', ->
       spy = controller._parseNode = sinon.spy()
       controller.render()
 
-      assert.ok spy.calledOnce
-      assert.equal spy.args[0][0].outerHTML, "<p>This is text</p>"
+      assert.ok spy.calledTwice
+      assert.equal spy.args[0][0], controller.el
+      assert.equal spy.args[1][0], controller.$el.find('p')[0]
 
     it "should parse only children of root node when parseSelf is false", ->
       class Controller extends Neck.Controller
