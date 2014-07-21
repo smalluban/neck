@@ -56,8 +56,8 @@ Library depends on [Backbone.js](http://backbonejs.org/) and [Underscore.js](htt
 They have to be included before Neck. 
 
 ```html
-<script src="/path/to/backbone.js"></script>
 <script src="/path/to/underscore.js"></script>
+<script src="/path/to/backbone.js"></script>
 <script src="/path/to/neck.js"></script>
 ```
 
