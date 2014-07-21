@@ -60,6 +60,8 @@ class Neck.Controller extends Backbone.View
       else
         template = @template @scope
 
+      @_parseNode @el, true if @parseSelf
+  
       template = $(template)
       @_parseNode el for el in template
           
@@ -78,7 +80,7 @@ class Neck.Controller extends Backbone.View
     @_onRender = false
     @
 
-  _parseNode: (node)->
+  _parseNode: (node, stop = false)->
     if node?.attributes
       el = $(node)
       buffer = []
