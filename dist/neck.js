@@ -131,6 +131,9 @@ Neck.Controller = (function(_super) {
       } else {
         template = this.template(this.scope);
       }
+      if (this.parseSelf) {
+        this._parseNode(this.el, true);
+      }
       template = $(template);
       for (_i = 0, _len = template.length; _i < _len; _i++) {
         el = template[_i];
@@ -161,8 +164,11 @@ Neck.Controller = (function(_super) {
     return this;
   };
 
-  Controller.prototype._parseNode = function(node) {
-    var attribute, buffer, child, controller, el, item, name, sortHelpers, stop, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
+  Controller.prototype._parseNode = function(node, stop) {
+    var attribute, buffer, child, controller, el, item, name, sortHelpers, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
+    if (stop == null) {
+      stop = false;
+    }
     if (node != null ? node.attributes : void 0) {
       el = $(node);
       buffer = [];

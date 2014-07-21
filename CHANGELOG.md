@@ -1,3 +1,7 @@
+# 0.3.3
+
+* Node self parsing with template bug-fix
+
 # 0.3.2
 
 * Minor bug-fixes
