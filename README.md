@@ -5,8 +5,8 @@
 Neck is a library that adds number of features to Backbone.js:
 
 * Event driven data-binding between controller and view (no dirty checking)
-* Simple dependeny injection module working with CommonJS out of the box
-* Templating working with any JavaScript template engine
+* Flexible dependeny injection module working with CommonJS out of the box
+* Support for any JavaScript template engine
 * Over a dozen helpers for view logic:
     * collections/lists management
     * showing/hiding elements
@@ -120,6 +120,7 @@ Stylus and Jade. It is working example of simple Neck application.
     - [ui-neck](#ui-neck)
     - [ui-route](#ui-route)
     - [ui-template](#ui-template)
+    - [ui-view](#ui-view)
     - [ui-yield](#ui-yield)
 
 ## Neck.Controller
@@ -446,6 +447,8 @@ class MyHelper extends Neck.Helper
     # Bad way - parsing will take `true` value of `template`
     @template = false
 ```
+
+Helpers with templates can have own nested helpers. Using `@` in accessor body of all helpers in chain points to root controller.
 
 ### Instance properties
 
@@ -893,6 +896,23 @@ Then you do not have to create separate file with empty message, just use proper
 
 Node is removed from DOM after helper is initialized.
 
+### ui-view
+
+```jade
+div(ui-view="'someController'", view-params="{some: 'example'}", view-inherit="true")
+```
+
+Container for one view. Main accessor should points to controller ID used by dependency injector. As controller is not helper `@` 
+special character in accessors will points to initialized controller, not root parent. 
+
+Helper uses accessors:
+
+* `view-params`: `object`: params passed to controller
+* `view-inherit`: `boolean`: Determine scope inheriting
+
+This helper should be used for reusing controller with templates. View will be inject directly to node, where helper is set (without `div` wrapper). 
+For extend logic is better to use some helper. 
+
 ### ui-yield
 
 ```jade
@@ -905,8 +925,8 @@ to determinate where view should be pushed. Helper uses accessors:
 
 * `yield-view`: `string id`: Controller ID of initially pushed view to yield
 * `yield-params`: `object`: Params passed to controller set by `yield-view` (only for initially view)
-* `yield-replace`: `boolean`: Cleares view stack when new view is pushed
-* `yield-inherit`: `boolean`: Determine scope inheriting by pushed view to yield
+* `yield-replace`: `boolean`: Determine if view stack is cleared when new view is pushed
+* `yield-inherit`: `boolean`: Determine scope inheriting
 
 #### Yield ID
 
@@ -958,12 +978,10 @@ If there is set `render:refresh` event in controller, it will be used instead re
 
 #### Scope inheriting
 
-If you want to share some properties through different views, for example logged user credentials or some other global variables, 
-it is good to have them automatically, and `yeild-inherit` gives this functionality. Controller `scope` where 
-`ui-yield` is defined will be shared (by controller inheritance) to all views pushed to stack. Common usage can be inheriting 
-`scope` from root application controller to yield difined in view.
+Sharing `scope` works separate for all views pushed to yield. `scope` between views in stack is not shared. Each one inherits 
+`scope` from parent controller, when `yield-inherit` is set to `true`.
 
-As it is described in scope [section](#scope-controllerscope) inheriting should be used carefully. Use yield inheritance when it is needed.
+As it is described in scope [section](#scope-controllerscope) inheriting should be used carefully. Use yield inheritance when it is really needed.
 
 ## Contribution
 
