@@ -32,8 +32,6 @@ class EventHelper extends Neck.Helper
       @stopListening()
 
 class Event
-  template: false
-  
   constructor: (options)->
     # Anchor should have 'href' attribute
     if options.el[0].tagName is 'A'

@@ -226,14 +226,13 @@ Property used for rendering body of view. Expected values:
 
 * `string`: id or template body for dependency injector (read Neck.DI [section](#neckdi)). Injector should return 
   `function` (as `function` value below) or `string` containing template.
-* `boolean`: When set to `false` controller `el` will not be touched at all. When set to `true` will use exisiting 
-  DOM tree of controller element as template. In both cases render method will parse nodes (looking for helpers), but when 
-  template is set to `true`, DOM tree is empty before rendering. This is important for example when helper will reuse own 
+* `boolean`: When set to `false` controller `el` body will be used as template but not removed from DOM. When set to `true` 
+  DOM tree is empty before rendering. This is important for example when helper will reuse own 
   body to create list of elements (read ui-collection or ui-list sections).
 * `function`: Set with `controller.scope` property as first argument. Should return `string` value 
   containg template body 
 
-When is not set (default `undefined` value) template can be overwritten by options pushed to `constructor` method: 
+When is not set (default `undefined` value) template is not used, but can be overwritten by options pushed to `constructor` method: 
 
 ```coffeescript
 # This will work. template will be set to 'myTemplatePath'

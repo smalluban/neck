@@ -95,7 +95,7 @@ class Neck.Controller extends Backbone.View
       buffer = _.sortBy(buffer, (b)-> - b.controller.prototype.orderPriority ) if sortHelpers
 
       for item in buffer
-        stop = true if item.controller.prototype.template
+        stop = true if item.controller.prototype.template isnt undefined
         new item.controller el: el, parent: @, mainAttr: item.value
 
     @_parseNode child for child in node.childNodes unless stop or not node
@@ -162,7 +162,7 @@ class Neck.Controller extends Backbone.View
     call() if initCall
 
   apply: (key)->
-    unless @scope[key]
+    unless @scope.hasOwnProperty(key)
       controller = @
       while controller = controller.parent
         if controller.scope.hasOwnProperty(key)
