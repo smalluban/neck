@@ -91,7 +91,7 @@ class Neck.Helper.collection extends Neck.Helper
           undefined
 
   addItem: (model)=>
-    @$el.empty() unless @items.length
+    @el.innerHTML = '' unless @items.length
 
     @items.push item = new @itemController(
       template: @itemTemplate
@@ -119,7 +119,7 @@ class Neck.Helper.collection extends Neck.Helper
   resetItems: =>
     item.remove() for item in @items
     @items = []
-    @$el.empty()
+    @el.innerHTML = ''
 
     if @collection?.length
       @addItem(item) for item in @collection.models

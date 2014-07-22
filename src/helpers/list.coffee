@@ -46,13 +46,17 @@ class Neck.Helper.list extends Neck.Helper
     @itemName or= 'item'
     @items = []
 
-    @watch '_main', (@list)->
-      if @list and not (@list instanceof Array)
+    @watch '_main', (list)->
+      if list and not (list instanceof Array)
         throw "'ui-list' main accessor has to be Array instance"
 
+      return if @list is list
+      @list = list
+      
       @resetItems()
       @apply 'listSort' if @scope.listSort 
       @apply 'listFilter' if @scope.listFilter
+
 
     @watch 'listSort', (sort)->
       if sort and @list
@@ -73,7 +77,7 @@ class Neck.Helper.list extends Neck.Helper
   resetItems: ->
     item.remove() for item in @items
     @items = []
-    @$el.empty()
+    @el.innerHTML = ''
 
     if @list?.length
       @add(item) for item in @list

@@ -31,7 +31,7 @@ class Neck.Controller extends Backbone.View
         @template = opts.template if opts.template
       when true
         @template = @$el.html()
-        @$el.empty()
+        @$el.innerHTML = ''
 
     @params = opts.params or {}
 

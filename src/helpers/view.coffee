@@ -11,7 +11,7 @@ class Neck.Helper.view extends Neck.Helper
         throw "'ui-view' main accessor has to be string controller ID"
 
       return if newId is @id
-      @$el.empty()
+      @$el.innerHTML = ''
 
       if @view
         @view.$el = $()
