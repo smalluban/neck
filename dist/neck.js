@@ -102,7 +102,7 @@ Neck.Controller = (function(_super) {
         break;
       case true:
         this.template = this.$el.html();
-        this.$el.empty();
+        this.$el.innerHTML = '';
     }
     this.params = opts.params || {};
   }
@@ -282,7 +282,12 @@ Neck.Controller = (function(_super) {
       throw "" + e + " in evaluating accessor '" + (original || evaluate) + "'";
     }
     return function() {
-      return getter(scope);
+      try {
+        return getter(scope);
+      } catch (_error) {
+        e = _error;
+        throw "" + e + " in running accessor '" + (original || evaluate) + "'";
+      }
     };
   };
 
@@ -295,7 +300,12 @@ Neck.Controller = (function(_super) {
       throw "" + e + " in evaluating accessor '" + (original || evaluate) + "'";
     }
     return function(newValue) {
-      return setter(scope, newValue);
+      try {
+        return setter(scope, newValue);
+      } catch (_error) {
+        e = _error;
+        throw "" + e + " in running accessor '" + (original || evaluate) + "'";
+      }
     };
   };
 
@@ -959,7 +969,7 @@ Neck.Helper.collection = (function(_super) {
   collection.prototype.addItem = function(model) {
     var item;
     if (!this.items.length) {
-      this.$el.empty();
+      this.el.innerHTML = '';
     }
     this.items.push(item = new this.itemController({
       template: this.itemTemplate,
@@ -1004,7 +1014,7 @@ Neck.Helper.collection = (function(_super) {
       item.remove();
     }
     this.items = [];
-    this.$el.empty();
+    this.el.innerHTML = '';
     if ((_ref1 = this.collection) != null ? _ref1.length : void 0) {
       _ref2 = this.collection.models;
       for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
@@ -1228,10 +1238,13 @@ Neck.Helper.list = (function(_super) {
     this.itemName || (this.itemName = 'item');
     this.items = [];
     this.watch('_main', function(list) {
-      this.list = list;
-      if (this.list && !(this.list instanceof Array)) {
+      if (list && !(list instanceof Array)) {
         throw "'ui-list' main accessor has to be Array instance";
       }
+      if (this.list === list) {
+        return;
+      }
+      this.list = list;
       this.resetItems();
       if (this.scope.listSort) {
         this.apply('listSort');
@@ -1281,7 +1294,7 @@ Neck.Helper.list = (function(_super) {
       item.remove();
     }
     this.items = [];
-    this.$el.empty();
+    this.el.innerHTML = '';
     if ((_ref1 = this.list) != null ? _ref1.length : void 0) {
       _ref2 = this.list;
       for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
@@ -1440,7 +1453,7 @@ Neck.Helper.view = (function(_super) {
       if (newId === this.id) {
         return;
       }
-      this.$el.empty();
+      this.$el.innerHTML = '';
       if (this.view) {
         this.view.$el = $();
         this.view.remove();

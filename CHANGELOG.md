@@ -1,3 +1,8 @@
+### 0.3.5
+
+* Clearing speed improvment
+* Better ui-list helper
+
 ### 0.3.4
 
 * New `ui-view` helper
