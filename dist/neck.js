@@ -286,7 +286,12 @@ Neck.Controller = (function(_super) {
         return getter(scope);
       } catch (_error) {
         e = _error;
-        throw "" + e + " in running accessor '" + (original || evaluate) + "'";
+        if (e instanceof TypeError) {
+          return void 0;
+        } else {
+          throw "" + e + " in running accessor '" + (original || evaluate) + "'";
+          throw e;
+        }
       }
     };
   };
@@ -305,6 +310,7 @@ Neck.Controller = (function(_super) {
       } catch (_error) {
         e = _error;
         throw "" + e + " in running accessor '" + (original || evaluate) + "'";
+        throw e;
       }
     };
   };
@@ -381,7 +387,7 @@ Neck.Helper = (function(_super) {
   Helper.prototype.REGEXPS = _.extend({}, Neck.Controller.prototype.REGEXPS, {
     PROPERTIES: /\'[^\']*\'|\"[^"]*\"|(\?\ *)*[\.a-zA-Z$_\@][^\ \'\"\{\}\(\):]*(\ *:)*(\'[^\']*\'|\"[^"]*\")*[^\ \'\"\{\}\(\):]*/g,
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g,
-    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|void|this)($|\.|\ )/g
+    RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|void|this)($|[\.\ \;])/g
   });
 
   Helper.prototype.parseSelf = false;
@@ -1155,8 +1161,6 @@ HrefHelper = (function(_super) {
 })(Neck.Helper);
 
 Neck.Helper.href = (function() {
-  href.prototype.template = false;
-
   function href(opts) {
     opts.el.attr('href', '#');
     opts.el.on('click', function(e) {
