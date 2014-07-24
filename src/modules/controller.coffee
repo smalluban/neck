@@ -30,8 +30,8 @@ class Neck.Controller extends Backbone.View
       when undefined
         @template = opts.template if opts.template
       when true
-        @template = @$el.html()
-        @$el.innerHTML = ''
+        @template = @el.innerHTML
+        @el.innerHTML = ''
 
     @params = opts.params or {}
 
@@ -153,7 +153,6 @@ class Neck.Controller extends Backbone.View
         if e instanceof TypeError
           undefined
         else
-          throw "#{e} in running accessor '#{original or evaluate}'" 
           throw e
 
   _setter: (scope, evaluate, original)->
@@ -166,7 +165,6 @@ class Neck.Controller extends Backbone.View
       try
         setter(scope, newValue)
       catch e
-        throw "#{e} in running accessor '#{original or evaluate}'"
         throw e
 
   watch: (keys, callback, initCall = true)->
