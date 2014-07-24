@@ -5,28 +5,36 @@ describe 'Controller', ->
   afterEach -> container.remove()
 
   describe "'template' property", ->
+
+    it "should use template from constructor options when template is undefined", ->
+      controller = new Neck.Controller el: container, template: "<p>Some text</p>"
+      assert.equal controller.template, "<p>Some text</p>"
+
+      class Controller extends Neck.Controller
+        template: false
+
+      controller = new Controller el: container, template: "<p>Some text</p>"
+      assert.equal controller.template, false
+
   
-    it "should render nothing when template is set to 'false'", ->
+    it "should not touch `el` when template set to 'false'", ->
+      container = $('<div><p>Some text</p></div>')
       class Controller extends Neck.Controller
         template: false
 
       controller = new Controller el: container
-      controller.render()
-      assert.equal container.html(), ''
+      assert.equal container[0].outerHTML, '<div><p>Some text</p></div>'
 
-    it "should set template to body of node when template is set to 'true'", ->
+    it "should set template to body of node and clear node when template is set to 'true'", ->
       exampleTemplate = "<p>Example text</p>"
       class Controller extends Neck.Controller
         template: true
 
       container.html exampleTemplate
       controller = new Controller el: container
-      
-      # After initialize template property is now string with node body text
-      assert.equal controller.template, exampleTemplate
 
-      controller.render()
-      assert.equal container.html(), exampleTemplate
+      assert.equal container[0].outerHTML, '<div></div>'
+      assert.equal controller.template, exampleTemplate
 
     it "should try to load template by DI when template is string", ->
       class Controller extends Neck.Controller
@@ -76,22 +84,6 @@ describe 'Controller', ->
       controller.render()
       assert.equal controller.el.outerHTML, "<p>This is text</p>"
 
-    it "should not change element root when it is already set", ->
-      class Controller extends Neck.Controller
-        template: "<li>This is text</li>"
-
-      container = $("<ul/>")
-      controller = new Controller el: container
-      controller.render()
-
-      assert.equal controller.el.outerHTML, "<ul><li>This is text</li></ul>"
-
-    it "should use template from contrcutor options when set", ->
-      controller = new Neck.Controller el: container, template: "<p>Some text</p>"
-      controller.render()
-      assert.equal controller.template, "<p>Some text</p>"
-      assert.equal controller.el.outerHTML, "<div><p>Some text</p></div>"
-
   describe "'parseSelf' property tests", ->
 
     # Set to true will trigger parsing proccess within root node, false set to
@@ -102,17 +94,14 @@ describe 'Controller', ->
     # is initialized parsing proccess from controller will continue work on that node.
 
     it "should start parsing from root when parseSelf is true", ->
-      class Controller extends Neck.Controller
-        parseSelf: true
-        template: "<p>This is text</p>"
-
-      controller = new Controller el: container
+      container = $('<div ui-helper=""></div>')
+      controller = new Neck.Controller el: container
+      
       spy = controller._parseNode = sinon.spy()
       controller.render()
 
-      assert.ok spy.calledTwice
+      assert.ok spy.called
       assert.equal spy.args[0][0], controller.el
-      assert.equal spy.args[1][0], controller.$el.find('p')[0]
 
     it "should parse only children of root node when parseSelf is false", ->
       class Controller extends Neck.Controller
@@ -324,7 +313,7 @@ describe 'Controller', ->
 
       # TODO: create expect value to check if test is passing
 
-    it "should stops when helper with template occur", ->
+    it "should stops when helper with template occur (as template set to true)", ->
       class Neck.Helper['firstHelper'] extends Neck.Helper
         check: ->
         constructor: ->
@@ -333,6 +322,40 @@ describe 'Controller', ->
 
       class Neck.Helper['secondHelper'] extends Neck.Helper
         template: true
+
+        check: ->
+        constructor: ->
+          super
+          @check(arguments)
+
+      class Controller extends Neck.Controller
+        template: 
+          '''
+            <div ui-first-helper="test" ui-second-helper="test">
+              <p ui-first-helper="test"></p>
+            </div>
+          '''
+
+      spyFirst = sinon.spy Neck.Helper['firstHelper'].prototype, 'check'
+      spySecond = sinon.spy Neck.Helper['secondHelper'].prototype, 'check'
+
+      controller = new Controller().render()
+
+      assert.ok spyFirst.calledOnce, "First helper occur twice but called once"
+      assert.ok spySecond.calledOnce
+
+      delete Neck.Helper['firstHelper']
+      delete Neck.Helper['secondHelper']
+
+    it "should stops when helper with template occur (as template set to false)", ->
+      class Neck.Helper['firstHelper'] extends Neck.Helper
+        check: ->
+        constructor: ->
+          super
+          @check(arguments)
+
+      class Neck.Helper['secondHelper'] extends Neck.Helper
+        template: false
 
         check: ->
         constructor: ->
@@ -439,4 +462,292 @@ describe 'Controller', ->
         assert.ok spyBefore.calledBefore spyAfter
 
         done()
+
+  describe "watching scope properties", ->
+
+    it "should watch changes for own scope property", ->
+      callback = sinon.spy()
+      class Controller extends Neck.Controller
+        scope: someProperty: 1
+
+      controller = new Controller()
+      controller.watch 'someProperty', callback
+      assert.ok callback.calledOnce
+      assert.ok callback.args[0][0], 1
+
+      controller.scope.someProperty = 2
+      assert.ok callback.calledTwice
+      assert.ok callback.args[1][0], 2
+
+    it "should watch changs for parent scope property", ->
+      callback = sinon.spy()
+      class Controller extends Neck.Controller
+        scope: someProperty: 1
+
+      controller = new Controller()
+      child = new Neck.Controller parent: controller
+      child.watch 'someProperty', callback
+
+      assert.ok callback.calledOnce
+      assert.ok callback.args[0][0], 1
+
+      controller.scope.someProperty = 2
+      assert.ok callback.calledTwice
+      assert.ok callback.args[1][0], 2
+
+    it "should watch own property when property is not set", ->
+      callback = sinon.spy()
+      controller = new Neck.Controller()
+      child = new Neck.Controller parent: controller
+
+      child.watch 'someProperty', callback
+
+      assert.ok callback.calledOnce
+      assert.equal callback.args[0][0], undefined
+
+      child.trigger 'refresh:someProperty'
+
+      assert.ok callback.calledTwice
+      assert.equal callback.args[1][0], undefined
+
+      child.scope.someProperty = 2
+
+      assert.ok callback.calledThrice
+      assert.equal callback.args[2][0], 2
+
+    it "should watch the same property watching twice", ->
+      callback1 = sinon.spy()
+      callback2 = sinon.spy()
+
+      controller = new Neck.Controller()
+      controller.watch 'some', callback1
+      controller.watch 'some', callback2
+
+      controller.scope.some = 'text'
+
+      assert.ok callback1.calledTwice
+      assert.ok callback2.calledTwice
+
+    it "should listen to Backbone.Model 'change' event", ->
+      callback = sinon.spy()
+      c = new Neck.Controller()
+      c.scope.model = new Backbone.Model()
+      c.watch 'model', callback, false
+      c.scope.model.trigger 'change'
+      assert.ok callback.called
+      assert.equal callback.args[0][0], c.scope.model
+
+      oldModel = c.scope.model
+      c.scope.model = new Backbone.Model()
+      assert.ok callback.calledTwice
+      assert.ok callback.args[1][0], c.scope.model
+
+      oldModel.trigger 'change'
+      assert.ok callback.calledTwice
+
+      c.scope.model.trigger 'change'
+      assert.ok callback.calledThrice
+
+    it "should listen to Backbone.Collection 'add' event", ->
+      callback = sinon.spy()
+      c = new Neck.Controller()
+      c.scope.model = new Backbone.Collection()
+      c.watch 'model', callback, false
+      c.scope.model.trigger 'add'
+      assert.ok callback.called
+      assert.equal callback.args[0][0], c.scope.model
+
+      oldModel = c.scope.model
+      c.scope.model = new Backbone.Collection()
+      assert.ok callback.calledTwice
+      assert.ok callback.args[1][0], c.scope.model
+
+      oldModel.trigger 'add'
+      assert.ok callback.calledTwice
+
+      c.scope.model.trigger 'add'
+      assert.ok callback.calledThrice
+
+    it "should listen to Backbone.Collection 'remove' event", ->
+      callback = sinon.spy()
+      c = new Neck.Controller()
+      c.scope.model = new Backbone.Collection()
+      c.watch 'model', callback, false
+      c.scope.model.trigger 'remove'
+      assert.ok callback.called
+      assert.equal callback.args[0][0], c.scope.model
+
+      oldModel = c.scope.model
+      c.scope.model = new Backbone.Collection()
+      assert.ok callback.calledTwice
+      assert.ok callback.args[1][0], c.scope.model
+
+      oldModel.trigger 'remove'
+      assert.ok callback.calledTwice
+
+      c.scope.model.trigger 'add'
+      assert.ok callback.calledThrice
+
+    it "should listen to Backbone.Collection 'change' event", ->
+      callback = sinon.spy()
+      c = new Neck.Controller()
+      c.scope.model = new Backbone.Collection()
+      c.watch 'model', callback, false
+      c.scope.model.trigger 'change'
+      assert.ok callback.called
+      assert.equal callback.args[0][0], c.scope.model
+
+      oldModel = c.scope.model
+      c.scope.model = new Backbone.Collection()
+      assert.ok callback.calledTwice
+      assert.ok callback.args[1][0], c.scope.model
+
+      oldModel.trigger 'add'
+      assert.ok callback.calledTwice
+
+      c.scope.model.trigger 'change'
+      assert.ok callback.calledThrice
+
+    it "should not trigger callback when initialize watching", ->
+      callback = sinon.spy()
+      c = new Neck.Controller
+      c.watch 'some', callback, false
+      assert.notOk callback.called
+
+  describe "scope property getter", ->
+
+    it "should return scope property value", ->
+      c = new Neck.Controller()
+      c.scope.some = 1
+      getter = c._getter c.scope, 'scope.some'
+      assert.equal getter(), 1
+
+    it "should throw error for evaluate is not JS code", ->
+      c = new Neck.Controller()
+
+      assert.throw -> 
+        getter = c._getter c.scope, "\\//"
+
+    it "should return undefined for not set deep property of undefined", ->
+      c = new Neck.Controller()
+      
+      c.scope.some = 1
+      getter = c._getter c.scope, 'scope.other.other'
+      assert.equal getter(), undefined
+
+    it "should throw error when getting rise error", ->
+      c = new Neck.Controller()
+
+      c.scope.some = ->
+        throw 'Error'
+
+      assert.throw -> 
+        getter = c._getter c.scope, "scope.some()"
+        getter()
+
+  describe "scope property setter", ->
+
+    it "should set new value to property", ->
+      c = new Neck.Controller()
+      c.scope.some = 1
+      setter = c._setter c.scope, 'scope.some'
+      setter(2)
+      assert.equal c.scope.some, 2
+
+    it "should throw error for evaluate is not JS code", ->
+      c = new Neck.Controller()
+
+      assert.throw -> 
+        setter = c._setter c.scope, "\\//"
+
+    it "should throw error when getting rise error", ->
+      c = new Neck.Controller()
+
+      c.scope.some = ->
+        throw 'Error'
+
+      assert.throw -> 
+        setter = c._setter c.scope, "scope.some()"
+        setter()
+
+  describe "apply change to scope property", ->
+
+    it "should trigger change to scope property", ->
+      c = new Neck.Controller()
+      callback = sinon.spy()
+
+      c.watch 'some', callback, false
+      c.apply 'some'
+
+      assert.ok callback.called
+
+    it "should trigger change to parent controller scope property", ->
+      c = new Neck.Controller()
+      c.scope.some = 'asd'
+      callback = sinon.spy()
+
+      c.watch 'some', callback, false
+
+      child = new Neck.Controller parent: c
+      child.apply 'some'
+      assert.ok callback.called
+
+  describe "route method", ->
+
+    it "should use default 'main' yield", ->
+      callback = sinon.spy()
+      c = new Neck.Controller
+      c._yieldList = {}
+      c._yieldList['main'] =
+        append: callback
+
+      c.route 'someController'
+      assert.ok callback.called
+      assert.ok callback.calledWith 'someController'
+
+    it "should use yield from options", ->
+      callback = sinon.spy()
+      c = new Neck.Controller
+      c._yieldList = {}
+      c._yieldList['some'] =
+        append: callback
+
+      c.route 'someController', yield: 'some'
+      assert.ok callback.called
+      assert.ok callback.calledWith 'someController'
+
+    it "should throw when there is no default yield", ->
+      callback = sinon.spy()
+      c = new Neck.Controller
+
+      assert.throw ->
+        c.route 'someController'
+
+    it "should throw when there is no set yield", ->
+      callback = sinon.spy()
+      c = new Neck.Controller
+      c._yieldList = {}
+      c._yieldList['main'] =
+        append: callback
+
+      assert.throw ->
+        c.route 'someController', yield: 'some'
+
+  describe "navigate method", ->
+    it "should use default options", ->
+      callback = sinon.spy()
+      _navigate = Neck.Router.prototype.navigate
+      Neck.Router.prototype.navigate = callback
+      
+      c = new Neck.Controller
+
+      c.navigate 'someController'
+      assert.ok callback.called
+      assert.ok callback.calledWith 'someController'
+      assert.deepEqual callback.args[0][1], trigger: true
+
+      Neck.Router.prototype.navigate = _navigate
+
+
+
 
