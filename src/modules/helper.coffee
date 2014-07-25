@@ -12,7 +12,7 @@ class Neck.Helper extends Neck.Controller
 
   constructor: (opts)->
     super
-    @_setAccessor '_main', opts.mainAttr
+    @_setAccessor '_main', opts.mainAttr or ""
 
     if @attributes
       for attr in @attributes
@@ -104,7 +104,6 @@ class Neck.Helper extends Neck.Controller
             break
           else unless controller.parent
             @scope._resolves[key].listeners.push controller: @parent, key: chain
-            @scope._resolves[key].triggers.push controller: @parent, key: chain if chain in triggers and chain isnt rootKey
             @_createObjectChain @parent.scope, chain, evaluate
 
     getter = @_getter(@parent.scope, parsedEvaluate, evaluate)
