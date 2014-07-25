@@ -1,8 +1,11 @@
 class Neck.Helper extends Neck.Controller
   REGEXPS: _.extend {}, Neck.Controller::REGEXPS,
-    PROPERTIES: /\'[^\']*\'|\"[^"]*\"|(\?\ *)*[\.a-zA-Z$_\@][^\ \'\"\{\}\(\):]*(\ *:)*(\'[^\']*\'|\"[^"]*\")*[^\ \'\"\{\}\(\):]*/g
+    PROPERTIES: /\'[^\']*\'|\"[^"]*\"|(\?\ *)*[\.a-zA-Z$_\@][^\ \'\"\{\}\(\):\[]*(\ *:)*(\'[^\']*\'|\"[^"]*\")*(\[.*\])*[^\ \'\"\{\}\(\):]*/g
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
     RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|void|this)($|[\.\ \;])/g
+    BRACKET_LOOP: /\[(.*)\]/
+    INLINE_CONDITION: /^\?\ */
+    CLEAR_CONDITION: /\ +\:$/
   
   parseSelf: false
   orderPriority: 0
@@ -20,10 +23,21 @@ class Neck.Helper extends Neck.Controller
     chain = []
     part = ''
     inside = false
+    insideBracket = 0
 
     for char in text
       if char in ['"',"'"] then inside = !inside
-      unless inside then chain.push part if char in ['.', '[']
+      if char is '['
+        unless insideBracket or inside
+          insideBracket+= 1
+          chain.push part
+      else if char is '.'
+        unless inside then chain.push part
+      else if char is ']'
+        insideBracket -= 1
+      else if char is ' ' and not inside and not insideBracket
+        break
+
       part += char
 
     chain.push part
@@ -41,28 +55,36 @@ class Neck.Helper extends Neck.Controller
     unless obj.hasOwnProperty param
       obj[param] or= undefined
 
+  _parseEvaluate: (evaluate, listeners, triggers)->
+    parsedEvaluate = evaluate.replace @REGEXPS.PROPERTIES, (t)=>
+      unless (char = t.substr(0, 1)) is '@' 
+        if not(char in ['"', "'", '.', '?']) and not (t[t.length-1] is ':') and not t.match @REGEXPS.RESERVED_KEYWORDS
+          listeners.push.apply listeners, @_propertyChain t
+          triggers.push t
+          t = t.replace @REGEXPS.BRACKET_LOOP, (sub)=> 
+            "[" + @_parseEvaluate(sub.substr(1,sub.length-2), listeners, triggers) + "]"
+          t = 'scope.' + t
+        else if char is "?"
+          t = t.split(@REGEXPS.INLINE_CONDITION)[1]
+          if not(t[0] in ['"', "'"]) and not t.match @REGEXPS.RESERVED_KEYWORDS
+            listeners.push.apply listeners, @_propertyChain t
+            triggers.push t.replace @REGEXPS.CLEAR_CONDITION, ''
+            t = 'scope.' + t
+          t = "? " + t
+      else
+        t = 'scope._context.' + t.substr(1)
+      t
+
+    parsedEvaluate
+
+
   _setAccessor: (key, evaluate)->
     evaluate = evaluate.trim()
     strict = false
 
     listeners = []
     triggers = []
-    parsedEvaluate = evaluate.replace @REGEXPS.PROPERTIES, (t)=>
-      unless (char = t.substr(0, 1)) is '@' 
-        if not(char in ['"', "'", '.', '?']) and not (t[t.length-1] is ':') and not t.match @REGEXPS.RESERVED_KEYWORDS
-          listeners.push.apply listeners, @_propertyChain t
-          triggers.push t
-          t = 'scope.' + t
-        else if char is "?"
-          t = t.split(/^\?\ */)[1]
-          if not(t[0] in ['"', "'"]) and not t.match @REGEXPS.RESERVED_KEYWORDS
-            listeners.push.apply listeners, @_propertyChain t
-            triggers.push t
-            t = 'scope.' + t
-          t = "? " + t
-      else
-        t = 'scope._context.' + t.substr(1)
-      t
+    parsedEvaluate = @_parseEvaluate evaluate, listeners, triggers
 
     if listeners.length
       triggers = _.uniq triggers
