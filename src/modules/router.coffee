@@ -8,19 +8,26 @@ class Neck.Router extends Backbone.Router
     unless @app = opts?.app
       throw "Neck.Router require connection with App Controller"
 
-  route:(route, settings)->
+  _createSettings: (settings)->
     # Mix values to proper structure
     unless settings.yields
       if typeof settings is 'object'
-        settings = yields: main: settings
+        yields: main: settings
       else if typeof settings is 'string'
-        settings = yields: main: controller: settings
+        yields: main: controller: settings
       else
         throw "Route structure has to be object or controller name"
+    else
+      settings
+
+  route:(route, settings)->
+    settings = @_createSettings settings
 
     myCallback = (args...)=>
-      query = {}
-      args.pop() if typeof (query = _.last(args)) is 'object'
+      if _.isObject (query = _.last(args))
+        args.pop() 
+      else
+        query = {}
 
       if args.length and !_.isRegExp(route)
         route.replace @PARAM_REGEXP, (all, name)->
