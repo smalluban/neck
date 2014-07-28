@@ -1,3 +1,11 @@
+### 0.3.7
+
+* Major and minor fixes in controller and helper modules
+
+Conflict changes:
+
+* Rename 'ui-view' to 'ui-controller'
+
 ### 0.3.5
 
 * Clearing speed improvment
