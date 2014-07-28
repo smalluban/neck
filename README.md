@@ -120,7 +120,6 @@ Stylus and Jade. It is working example of simple Neck application.
     - [ui-neck](#ui-neck)
     - [ui-route](#ui-route)
     - [ui-template](#ui-template)
-    - [ui-view](#ui-view)
     - [ui-yield](#ui-yield)
 
 ## Neck.Controller
@@ -894,24 +893,7 @@ Set node html body as `scope` property. Main accessor will be set.
 Helper is useful for example for using as empty template for `ui-collection` or `ui-list`. 
 Then you do not have to create separate file with empty message, just use property created with `ui-template`.
 
-Node is removed from DOM after helper is initialized.
-
-### ui-view
-
-```jade
-div(ui-view="'someController'", view-params="{some: 'example'}", view-inherit="true")
-```
-
-Container for one view. Main accessor should points to controller ID used by dependency injector. As controller is not helper `@` 
-special character in accessors will points to initialized controller, not root parent. 
-
-Helper uses accessors:
-
-* `view-params`: `object`: params passed to controller
-* `view-inherit`: `boolean`: Determine scope inheriting
-
-This helper should be used for reusing controller with templates. View will be inject directly to node, where helper is set (without `div` wrapper). 
-For extend logic is better to use some helper. 
+Node is removed from DOM after helper is initialized. 
 
 ### ui-yield
 

@@ -30,7 +30,7 @@ class Neck.Controller extends Backbone.View
       when undefined
         @template = opts.template if opts.template
       when true
-        @template = @el.innerHTML
+        @template = @el.innerHTML.trim()
         @el.innerHTML = ''
 
     @params = opts.params or {}
