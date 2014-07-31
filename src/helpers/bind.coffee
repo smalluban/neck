@@ -1,6 +1,7 @@
 class Neck.Helper.bind extends Neck.Helper
   attributes: [
     'bindProperty'
+    'bindNumber'
   ]
 
   NUMBER: /^[0-9]+((\.|\,)?[0-9]+)*$/
@@ -10,6 +11,8 @@ class Neck.Helper.bind extends Neck.Helper
 
   constructor: (opts)->
     super
+
+    @scope.bindNumber = true if @scope.bindNumber is undefined
 
     if @$el.is('input, textarea, select')
       @isInput = true
@@ -22,6 +25,7 @@ class Neck.Helper.bind extends Neck.Helper
         throw "Using Backbone.Model in 'ui-bind' requires 'bind-property'" unless @scope.bindProperty
         throw "'bind-property' has to be a string" unless typeof @scope.bindProperty is 'string'
         return if @model is value
+        @stopListening @model if @model
         @model = value
         @listenTo @model, "change:#{@scope.bindProperty}", @updateView
         @updateView()
@@ -52,7 +56,7 @@ class Neck.Helper.bind extends Neck.Helper
       @scope._main = value 
 
   calculateValue: (s)->
-    if s.match @NUMBER
+    if s.match(@NUMBER) and @scope.bindNumber
       Number s.replace(',','.')
     else
       s
