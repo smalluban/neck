@@ -204,6 +204,12 @@ describe 'Helper', ->
           listeners: []
           triggers: []
         }
+        {
+          in: "{property: test, other: some}"
+          out: "{property: scope.test, other: scope.some}"
+          listeners: ["test", "some"]
+          triggers: ["test", "some"]
+        }
       ]
 
       for pair in pairs

@@ -1,6 +1,6 @@
 class Neck.Helper extends Neck.Controller
   REGEXPS: _.extend {}, Neck.Controller::REGEXPS,
-    PROPERTIES: /\'[^\']*\'|\"[^"]*\"|(\?\ *)*[\.a-zA-Z$_\@][^\ \'\"\{\}\(\):\[]*(\ *:)*(\'[^\']*\'|\"[^"]*\")*(\[.*\])*[^\ \'\"\{\}\(\):]*/g
+    PROPERTIES: /\'[^\']*\'|\"[^"]*\"|(\?\ *)*[\.a-zA-Z$_\@][^\ \'\"\{\}\(\):\[\,]*(\ *:)*(\'[^\']*\'|\"[^"]*\")*(\[.*\])*[^\ \'\"\{\}\(\):\,]*/g
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g
     RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|void|this)($|[\.\ \;])/g
     BRACKET_LOOP: /\[(.*)\]/
