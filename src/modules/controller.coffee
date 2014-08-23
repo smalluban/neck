@@ -100,7 +100,7 @@ class Neck.Controller extends Backbone.View
         stop = true if item.controller.prototype.template isnt undefined
         new item.controller el: el, parent: @, mainAttr: item.value
 
-    @_parseNode child for child in node.childNodes unless stop or not node
+    @_parseNode child for child in node.children unless stop or not node
     undefined
 
   _watch: (key, callback, context = @)->
