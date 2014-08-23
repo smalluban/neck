@@ -1,6 +1,6 @@
 # Neck
 
-[![Build Status](https://travis-ci.org/smalluban/neck.svg)](https://travis-ci.org/smalluban/neck) [![Coverage Status](https://coveralls.io/repos/smalluban/neck/badge.png?branch=master)](https://coveralls.io/r/smalluban/neck?branch=master)
+[![Build Status](https://travis-ci.org/smalluban/neck.svg)](https://travis-ci.org/smalluban/neck)
 
 Neck is a library that adds number of features to Backbone.js:
 
