@@ -210,7 +210,7 @@ Neck.Controller = (function(_super) {
       }
     }
     if (!(stop || !node)) {
-      _ref2 = node.childNodes;
+      _ref2 = node.children;
       for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
         child = _ref2[_k];
         this._parseNode(child);
@@ -383,7 +383,7 @@ Neck.Helper = (function(_super) {
   __extends(Helper, _super);
 
   Helper.prototype.REGEXPS = _.extend({}, Neck.Controller.prototype.REGEXPS, {
-    PROPERTIES: /\'[^\']*\'|\"[^"]*\"|(\?\ *)*[\.a-zA-Z$_\@][^\ \'\"\{\}\(\):\[]*(\ *:)*(\'[^\']*\'|\"[^"]*\")*(\[.*\])*[^\ \'\"\{\}\(\):]*/g,
+    PROPERTIES: /\'[^\']*\'|\"[^"]*\"|(\?\ *)*[\.a-zA-Z$_\@][^\ \'\"\{\}\(\):\[\,]*(\ *:)*(\'[^\']*\'|\"[^"]*\")*(\[.*\])*[^\ \'\"\{\}\(\):\,]*/g,
     ONLY_PROPERTY: /^[a-zA-Z$_][^\ \(\)\{\}\:]*$/g,
     RESERVED_KEYWORDS: /(^|\ )(true|false|undefined|null|NaN|void|this)($|[\.\ \;])/g,
     BRACKET_LOOP: /\[(.*)\]/,
@@ -752,7 +752,7 @@ Neck.Helper.attr = (function(_super) {
 Neck.Helper.bind = (function(_super) {
   __extends(bind, _super);
 
-  bind.prototype.attributes = ['bindProperty'];
+  bind.prototype.attributes = ['bindProperty', 'bindNumber'];
 
   bind.prototype.NUMBER = /^[0-9]+((\.|\,)?[0-9]+)*$/;
 
@@ -764,6 +764,9 @@ Neck.Helper.bind = (function(_super) {
     this.updateValue = __bind(this.updateValue, this);
     this.updateView = __bind(this.updateView, this);
     bind.__super__.constructor.apply(this, arguments);
+    if (this.scope.bindNumber === void 0) {
+      this.scope.bindNumber = true;
+    }
     if (this.$el.is('input, textarea, select')) {
       this.isInput = true;
       if (this.$el.is(':checkbox')) {
@@ -781,6 +784,9 @@ Neck.Helper.bind = (function(_super) {
         }
         if (this.model === value) {
           return;
+        }
+        if (this.model) {
+          this.stopListening(this.model);
         }
         this.model = value;
         this.listenTo(this.model, "change:" + this.scope.bindProperty, this.updateView);
@@ -823,7 +829,7 @@ Neck.Helper.bind = (function(_super) {
   };
 
   bind.prototype.calculateValue = function(s) {
-    if (s.match(this.NUMBER)) {
+    if (s.match(this.NUMBER) && this.scope.bindNumber) {
       return Number(s.replace(',', '.'));
     } else {
       return s;

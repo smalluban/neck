@@ -1,3 +1,8 @@
+### 0.3.8
+
+* Minor bug-fixes
+* 'bind-number' accessor for ui-bind
+
 ### 0.3.7
 
 * Major and minor fixes in controller and helper modules
