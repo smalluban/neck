@@ -41,11 +41,9 @@
   document.registerNeckComponent = (target, opts)->
     # Query target
 
-    extend opts,
-      priority: 0
-      target: target
 
-    # Set flags
+    opts.priority or= 0
+    opts.target = target
     opts.flags = opts.flags.split(' ') if opts.flags
 
     Neck.components.push options
@@ -53,7 +51,7 @@
   # Initialize Neck
   root.addEventListener "DOMContentLoaded", ->
     # Set order of registered components
-    Neck.components.sort (a,b)-> b.priority - a.priority
+    # Neck.components.sort (a,b)-> b.priority - a.priority
 
     # Search for starting points - neck attribute
     for el in document.querySelectorAll '[neck]'
