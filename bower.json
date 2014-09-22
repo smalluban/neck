@@ -1,5 +1,5 @@
 {
-  "name": "neck",
+  "name": "Neck",
   "version": "0.3.8",
   "authors": [
     "smalluban"
@@ -7,8 +7,6 @@
   "description": "Create apps with Backbone faster!",
   "main": "dist/neck.js",
   "keywords": [
-    "backbone",
-    "backbonejs",
     "plugin",
     "neck",
     "neckjs",
@@ -25,8 +23,5 @@
     "bower_components",
     "test",
     "tests"
-  ],
-  "dependencies": {
-    "backbone": "~1.1.1"
-  }
+  ]
 }

@@ -3,26 +3,24 @@
   <meta charset="utf-8">
   <title>Mocha Tests</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="vendor.js"></script>
+  <script src="../neck.js" data-cover></script>
 </head>
 <body>
   <div id="mocha"></div>
-  <script src="vendor.js"></script>
-  <script src="../neck.js" data-cover></script>
   <script>
     mocha.setup({ui: 'bdd', globals: ['script*']});
     window.assert = chai.assert;
   </script>
 
   <script src="test.js"></script>
-  
+
   <script>
-    $(function() {
-      if (window.mochaPhantomJS) {
-          return mochaPhantomJS.run();
-        } else {
-          return mocha.run();
-        }
-    });
+    if (window.mochaPhantomJS) {
+      mochaPhantomJS.run();
+    } else {
+      mocha.run();
+    }
   </script>
 </body>
 </html>
