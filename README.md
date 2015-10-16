@@ -700,7 +700,7 @@ Using inline template, everything is refreshed by helpers (data-binding). Using 
 to set values directly. Because of that, item view has to be rerender every time model changes. It is better to use with 
 external template `scope` properties directly than by helpers (especially avoid `ui-value` and use `= property`). 
 
-It gives big performance boost. Rendering large collection with nested collectons with inline templating 
+It gives big performance boost. Rendering large collection with nested collections with inline templating 
 (using lot of helpers) can slow down painting dramatically. Using `collection-view` you can set item body with `scope` 
 properties written directly or with data-binding (using helepers).
 
