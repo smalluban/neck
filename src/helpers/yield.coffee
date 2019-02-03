@@ -1,5 +1,5 @@
 class Neck.Helper.yield extends Neck.Helper
-  attributes: ['yieldView', 'yieldParams', 'yieldReplace', 'yieldInherit']
+  attributes: ['yieldView', 'yieldParams', 'yieldReplace', 'yieldInherit', 'yieldHistory']
   template: true
   replace: false
 
@@ -25,6 +25,11 @@ class Neck.Helper.yield extends Neck.Helper
 
     if @scope.yieldView
       @append @scope.yieldView, @scope.yieldParams
+    
+    if @scope.yieldHistory
+      window.addEventListener "popstate", @_popState
+      @on "remove:after", => 
+        window.removeEventListener "popstate", @_popState
 
   _createController: (controllerPath, params, parent)->
     Controller = @injector.load(controllerPath, type: 'controller')
@@ -38,12 +43,51 @@ class Neck.Helper.yield extends Neck.Helper
 
     # Set parent controller
     parent._yieldChild = controller
-    parent.listenTo controller, "remove:after", -> @_yieldChild = undefined
+    parent.listenTo controller, "remove:after", =>
+      @_backHistory parent
+      parent._yieldChild = undefined
+
     controller.listenTo parent, "remove:after", -> controller.remove()
 
     @$el.append controller.render().$el
 
     controller
+
+  _popState: ()=>
+    if @omitPop
+      @omitPop = false
+      return
+
+    controllerPath = history.state
+    parent = @
+    child = undefined
+
+    while parent._yieldChild
+      child = parent._yieldChild
+      if child._yieldPath is controllerPath
+        @omitBack = true
+        child._yieldChild?.remove()
+        break
+      parent = child
+
+  _pushHistory: (controllerPath, actionName)->
+    return if not @scope.yieldHistory
+    history[actionName](controllerPath, '', undefined)
+
+  _backHistory: (child)->
+    return if not @scope.yieldHistory
+
+    if @omitBack
+      @omitBack = false
+      return
+
+    deep = 0
+    while child._yieldChild
+      deep += 1
+      child = child._yieldChild
+    
+    @omitPop = true
+    history.back(deep)
 
   append: (controllerPath, params, refresh = false, replace = @replace)->
     if replace and @_yieldChild
@@ -56,6 +100,8 @@ class Neck.Helper.yield extends Neck.Helper
       else
         @_yieldChild.remove()
         @_yieldChild = undefined
+
+    historyAction = if not @_yieldChild then 'replaceState' else 'pushState'
 
     # Check if controller is already in yield
     parent = @
@@ -75,7 +121,8 @@ class Neck.Helper.yield extends Neck.Helper
 
       parent = parent._yieldChild
   
-    @_createController controllerPath, params , parent
+    @_createController controllerPath, params, parent
+    @_pushHistory controllerPath, historyAction
 
   clear: ->
     if @_yieldChild

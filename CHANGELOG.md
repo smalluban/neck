@@ -1,3 +1,7 @@
+### 0.4.0
+
+- Yield with history option
+
 ### 0.3.9
 
 * Helper without template fix
