@@ -20,19 +20,20 @@
   ],
   "scripts": {
     "start": "brunch watch --server",
-    "build": "brunch build",  
+    "build": "brunch build",
     "test": "brunch build && ./node_modules/.bin/mocha-phantomjs dist/test/index.html && ./node_modules/.bin/poncho -R lcov dist/test/index.html | ./node_modules/coveralls/bin/coveralls.js",
     "test-mocha": "brunch build && ./node_modules/.bin/mocha-phantomjs dist/test/index.html"
   },
   "dependencies": {
-    "javascript-brunch": "<= 1.8",
-    "coffee-script-brunch": "<= 1.8",
-    "uglify-js-brunch": "<= 1.8",
-    "auto-reload-brunch": "<= 1.8",
-    "css-brunch": "<= 1.8.0",
-    "clean-css-brunch": "<= 1.8.0",
+    "auto-reload-brunch": "^2.7.1",
+    "bower": "^1.8.8",
+    "brunch": "^2.10.17",
+    "clean-css-brunch": "^2.10.0",
+    "coffee-script-brunch": "^1.7.3",
+    "coveralls": "~2.11.1",
+    "css-brunch": "^2.10.0",
     "mocha-phantomjs": "~3.1.6",
     "poncho": "~0.1.1",
-    "coveralls": "~2.11.1"
+    "uglify-js-brunch": "^2.10.0"
   }
 }
