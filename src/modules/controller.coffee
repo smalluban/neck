@@ -42,8 +42,8 @@ class Neck.Controller extends Backbone.View
     @parent = undefined
     @scope = undefined
 
-    # Trigger Backbone remove 
-    super
+    @$el.remove() if @template
+    @stopListening()
 
     @trigger 'remove:after'
     undefined

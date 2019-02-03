@@ -18,7 +18,7 @@ class Neck.Helper.yield extends Neck.Helper
     else
       @list[@name] = @
 
-    @listenTo @context, 'render:clear remove:after', =>
+    @listenTo @context, 'render:before remove:after', =>
       delete @list[@name]
 
     @replace or= @scope.yieldReplace
