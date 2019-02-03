@@ -1,4 +1,6 @@
 exports.config =
+  npm:
+    enabled: false
 
   modules:
     definition: false

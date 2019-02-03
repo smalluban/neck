@@ -3,7 +3,7 @@ class Neck.Controller extends Backbone.View
   @REVERSE_PARSING: $('<div ui-test1 ui-test2></div>')[0].attributes[0].name is 'ui-test2'
 
   REGEXPS:
-    PROPERTY_SEPARATOR: /\.|\[.+\]\./
+    PROPERTY_SEPARATOR: /\.|\[.+\]\.?/
 
   divWrapper: true
   parseSelf: true
@@ -97,7 +97,7 @@ class Neck.Controller extends Backbone.View
       buffer = _.sortBy(buffer, (b)-> - b.controller.prototype.orderPriority ) if sortHelpers
 
       for item in buffer
-        stop = true if item.controller.prototype.template isnt undefined
+        stop = true if item.controller.prototype.template
         new item.controller el: el, parent: @, mainAttr: item.value
 
     @_parseNode child for child in node.children unless stop or not node

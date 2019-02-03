@@ -58,12 +58,13 @@ class Neck.Helper extends Neck.Controller
   _parseEvaluate: (evaluate, listeners, triggers)->
     parsedEvaluate = evaluate.replace @REGEXPS.PROPERTIES, (t)=>
       unless (char = t.substr(0, 1)) is '@' 
-        if not(char in ['"', "'", '.', '?']) and not (t[t.length-1] is ':') and not t.match @REGEXPS.RESERVED_KEYWORDS
-          listeners.push.apply listeners, @_propertyChain t
-          triggers.push t
+        if not(char in ['"', "'", '.', '?']) and not (t[t.length-1] is ':')
+          if not t.match @REGEXPS.RESERVED_KEYWORDS
+            listeners.push.apply listeners, @_propertyChain t
+            triggers.push t
+            t = 'scope.' + t
           t = t.replace @REGEXPS.BRACKET_LOOP, (sub)=> 
             "[" + @_parseEvaluate(sub.substr(1,sub.length-2), listeners, triggers) + "]"
-          t = 'scope.' + t
         else if char is "?"
           t = t.split(@REGEXPS.INLINE_CONDITION)[1]
           if not(t[0] in ['"', "'"]) and not t.match @REGEXPS.RESERVED_KEYWORDS
