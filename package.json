@@ -2,7 +2,7 @@
   "name": "neck",
   "description": "Create apps with Backbone faster!",
   "author": "smalluban",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "repository": {
     "type": "git",
     "url": "http://github.com/smalluban/neck.git"
@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "start": "brunch watch --server",
-    "build": "brunch build",
+    "build": "brunch build -p",
     "test": "brunch build && ./node_modules/.bin/mocha-phantomjs dist/test/index.html && ./node_modules/.bin/poncho -R lcov dist/test/index.html | ./node_modules/coveralls/bin/coveralls.js",
     "test-mocha": "brunch build && ./node_modules/.bin/mocha-phantomjs dist/test/index.html"
   },

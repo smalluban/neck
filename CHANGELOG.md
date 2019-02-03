@@ -1,3 +1,8 @@
+### 0.3.9
+
+* Helper without template fix
+* Helper evalute for properties with reserved keywords fix
+
 ### 0.3.8
 
 * Minor bug-fixes
